@@ -17,7 +17,7 @@ jobs:
         run: cat snyk.sarif
       - name: Total Security Issues
         run: |
-              length=$(cat snyk.sarif | jq '.runa[0].results | length')
+              length=$(cat snyk.sarif | jq '.runs[0].results | length')
               echo "RESULTS_LENGTH=$RESULTS_LENGTH" >> $GITHUB_ENV
 
       - name: Send notification on Slack using Webhooks
