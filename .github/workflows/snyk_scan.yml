@@ -13,12 +13,18 @@ jobs:
         with:
           command: code test
           args: --sarif-file-output=snyk.sarif
-      - name: Print the snyk sarif file
-        run: cat snyk.sarif
       - name: Total Security Issues
         run: |
               length=$(cat snyk.sarif | jq '.runs[0].results | length')
               echo "RESULTS_LENGTH=$length" >> $GITHUB_ENV
+      - name: Pass or Fail the Job
+        run: |
+              if ["$RESULTS_LENGTH" !=0 ]; then
+                echo "Job Failed"
+                exit 1
+              else
+                echo "Pass"
+              fi
 
       - name: Send notification on Slack using Webhooks
         uses: slackapi/slack-github-action@v1.24.0
