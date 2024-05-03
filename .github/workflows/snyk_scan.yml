@@ -28,5 +28,5 @@ jobs:
                 {
                    "text": "*The Snyk scan result for repo , snykgoof, is : ${{ job.status }}* \n*Number of vulnerabilities : ${{ env.RESULTS_LENGTH }}* \n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                 }
-          env:
+        env:
             SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
