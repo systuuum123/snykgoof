@@ -17,6 +17,18 @@ jobs:
         run: |
               length=$(cat snyk.sarif | jq '.runs[0].results | length')
               echo "RESULTS_LENGTH=$length" >> $GITHUB_ENV
+      - name: High
+        run: |
+              high=$(cat snyk.sarif | jq '.runs[0].results | map(select(.level == "error")) | length')
+              echo "RESULTS_HIGH=$high" >> $GITHUB_ENV
+      - name: Medium
+        run: |
+              medium=$(cat snyk.sarif | jq '.runs[0].results | map(select(.level == "warning")) | length')
+              echo "RESULTS_MEDIUM=$medium" >> $GITHUB_ENV
+      - name: Low
+        run: |
+              low=$(cat snyk.sarif | jq '.runs[0].results | map(select(.level == "note")) | length')
+              echo "RESULTS_LOW=$low" >> $GITHUB_ENV
       - name: Pass or Fail the Job
         run: |
               if ["$RESULTS_LENGTH" !=0 ]; then
@@ -32,7 +44,7 @@ jobs:
         with:
           payload: |
                 {
-                   "text": "*The Snyk scan result for repo , snykgoof, is : ${{ job.status }}* \n*Number of vulnerabilities : ${{ env.RESULTS_LENGTH }}* \n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                   "text": "*The Snyk scan result for repo , snykgoof, is : ${{ job.status }}* \n*Number of vulnerabilities : ${{ env.RESULTS_LENGTH }}* \n*High : ${{ env.RESULTS_HIGH }}* \n*Medium : ${{ env.RESULTS_MEDIUM }}* \n*Low : ${{ env.RESULTS_LOW }}* \n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                 }
         env:
             SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
