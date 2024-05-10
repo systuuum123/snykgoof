@@ -36,28 +36,30 @@ jobs:
           jq -r '.runs[].results[] | select(.level == "error") | .locations[].physicalLocation.artifactLocation.uri' snyk.sarif > commit_urls.txt
 
       - name: Calculate vulnerability age
-        id: calculate_age
-        run: |
-          while IFS= read -r url; do
-            # Extract repository and commit hash from URL
-            repo=$(echo $url | cut -d '/' -f 4,5)
-            commit_hash=$(echo $url | rev | cut -d '/' -f 1 | rev)
-            
-            # Fetch commit date
-            commit_date=$(git log -1 --format="%ad" --date=iso8601-strict -- $commit_hash --pretty=tformat:"%cd" -- $repo)
-            echo "RESULTS_COMMIT_Date=$commit_date" >> $GITHUB_ENV
+  id: calculate_age
+  run: |
+    total_high_vulnerabilities=$(jq '.runs[].results | map(select(.level == "error")) | length' snyk.sarif)
+    echo "Total number of high vulnerabilities: $total_high_vulnerabilities"
 
-            # Calculate age of vulnerability
-            current_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-            commit_timestamp=$(date -d "$commit_date" +"%s" 2>/dev/null || date -jf "%Y-%m-%dT%H:%M:%S" "$commit_date" +"%s")
-            current_timestamp=$(date -d "$current_date" +"%s")
-            age=$((current_timestamp - commit_timestamp))
-            age_days=$((age / 86400))
-            echo "RESULTS_AGE=$age" >> $GITHUB_ENV
-            echo "RESULTS_AGE_DAYS=$age_days" >> $GITHUB_ENV
+    vulnerability_counter=1
+    while IFS= read -r url; do
+      # Extract repository and commit hash from URL
+      repo=$(echo "$url" | cut -d '/' -f 4,5)
+      commit_hash=$(echo "$url" | rev | cut -d '/' -f 1 | rev)
+      
+      # Fetch commit date
+      commit_date=$(git log -1 --format="%ad" --date=iso8601-strict -- "$commit_hash" --pretty=tformat:"%cd" -- "$repo")
 
-            echo "Vulnerability introduced in commit $commit_hash of repository $repo is approximately $age_days days old."
-          done < commit_urls.txt
+      # Calculate age of vulnerability
+      current_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      commit_timestamp=$(date -d "$commit_date" +"%s" 2>/dev/null || date -jf "%Y-%m-%dT%H:%M:%S" "$commit_date" +"%s")
+      current_timestamp=$(date -d "$current_date" +"%s")
+      age=$((current_timestamp - commit_timestamp))
+      age_days=$((age / 86400))
+
+      echo "Vulnerability $vulnerability_counter: <vulnerability Name>: Open since $age_days days"
+      vulnerability_counter=$((vulnerability_counter + 1))
+    done < commit_urls.txt
 
       - name: Display vulnerability age
         run: echo "Vulnerability age calculated successfully."
