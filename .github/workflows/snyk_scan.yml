@@ -29,15 +29,7 @@ jobs:
         run: |
               low=$(cat snyk.sarif | jq '.runs[0].results | map(select(.level == "note")) | length')
               echo "RESULTS_LOW=$low" >> $GITHUB_ENV
-      - name: Pass or Fail the Job
-        run: |
-              if ["$RESULTS_LENGTH" !=0 ]; then
-                echo "Job Failed"
-                exit 1
-              else
-                echo "Pass"
-              fi
-              
+      
       - name: Extract commit URLs from SARIF file
         id: extract_commits
         run: |
@@ -53,11 +45,14 @@ jobs:
             
             # Fetch commit date
             commit_date=$(git log -1 --format="%ad" --date=iso8601-strict -- $commit_hash --pretty=tformat:"%cd" -- $repo)
+            echo "RESULTS_COMMIT_Date=$commit_date" >> $GITHUB_ENV
 
             # Calculate age of vulnerability
             current_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             age=$(($(date -d $current_date +%s) - $(date -d $commit_date +%s)))
             age_days=$((age / 86400))
+            echo "RESULTS_AGE=$age" >> $GITHUB_ENV
+            echo "RESULTS_AGE_DAYS=$age_days" >> $GITHUB_ENV
 
             echo "Vulnerability introduced in commit $commit_hash of repository $repo is approximately $age_days days old."
           done < commit_urls.txt
@@ -65,13 +60,23 @@ jobs:
       - name: Display vulnerability age
         run: echo "Vulnerability age calculated successfully."
 
+        
+      - name: Pass or Fail the Job
+        run: |
+              if ["$RESULTS_LENGTH" !=0 ]; then
+                echo "Job Failed"
+                exit 1
+              else
+                echo "Pass"
+              fi
+
       - name: Send notification on Slack using Webhooks
         uses: slackapi/slack-github-action@v1.24.0
         if: always()
         with:
           payload: |
                 {
-                   "text": "*The Snyk scan result for repo , snykgoof, is : ${{ job.status }}* \n*Number of vulnerabilities : ${{ env.RESULTS_LENGTH }}* \n*High : ${{ env.RESULTS_HIGH }}* \n*Medium : ${{ env.RESULTS_MEDIUM }}* \n*Low : ${{ env.RESULTS_LOW }}* \n*Age : $age* \n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                   "text": "*The Snyk scan result for repo , snykgoof, is : ${{ job.status }}* \n*Number of vulnerabilities : ${{ env.RESULTS_LENGTH }}* \n*High : ${{ env.RESULTS_HIGH }}* \n*Medium : ${{ env.RESULTS_MEDIUM }}* \n*Low : ${{ env.RESULTS_LOW }}* \n*Age : ${{ env.RESULTS_AGE }}* \n*Age_Days : ${{ env.RESULTS_AGE_DAYS }}* \n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                 }
         env:
             SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
