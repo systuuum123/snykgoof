@@ -37,6 +37,33 @@ jobs:
               else
                 echo "Pass"
               fi
+              
+      - name: Extract commit URLs from SARIF file
+        id: extract_commits
+        run: |
+          jq -r '.runs[].results[] | select(.level == "error") | .locations[].physicalLocation.artifactLocation.uri' snyk.sarif > commit_urls.txt
+
+      - name: Calculate vulnerability age
+        id: calculate_age
+        run: |
+          while IFS= read -r url; do
+            # Extract repository and commit hash from URL
+            repo=$(echo $url | cut -d '/' -f 4,5)
+            commit_hash=$(echo $url | rev | cut -d '/' -f 1 | rev)
+            
+            # Fetch commit date
+            commit_date=$(git log -1 --format="%ad" --date=iso8601-strict -- $commit_hash --pretty=tformat:"%cd" -- $repo)
+
+            # Calculate age of vulnerability
+            current_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            age=$(($(date -d $current_date +%s) - $(date -d $commit_date +%s)))
+            age_days=$((age / 86400))
+
+            echo "Vulnerability introduced in commit $commit_hash of repository $repo is approximately $age_days days old."
+          done < commit_urls.txt
+
+      - name: Display vulnerability age
+        run: echo "Vulnerability age calculated successfully."
 
       - name: Send notification on Slack using Webhooks
         uses: slackapi/slack-github-action@v1.24.0
@@ -44,7 +71,7 @@ jobs:
         with:
           payload: |
                 {
-                   "text": "*The Snyk scan result for repo , snykgoof, is : ${{ job.status }}* \n*Number of vulnerabilities : ${{ env.RESULTS_LENGTH }}* \n*High : ${{ env.RESULTS_HIGH }}* \n*Medium : ${{ env.RESULTS_MEDIUM }}* \n*Low : ${{ env.RESULTS_LOW }}* \n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                   "text": "*The Snyk scan result for repo , snykgoof, is : ${{ job.status }}* \n*Number of vulnerabilities : ${{ env.RESULTS_LENGTH }}* \n*High : ${{ env.RESULTS_HIGH }}* \n*Medium : ${{ env.RESULTS_MEDIUM }}* \n*Low : ${{ env.RESULTS_LOW }}* \n*Age : $age* \n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                 }
         env:
             SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
