@@ -31,11 +31,15 @@ jobs:
         run: |
               low=$(cat snyk.sarif | jq '.runs[0].results | map(select(.level == "note")) | length')
               echo "RESULTS_LOW=$low" >> $GITHUB_ENV
-      
-      - name: Extract commit URLs from SARIF file
-        id: extract_commits
+      - name: High Vulnerabilities
         run: |
-          jq -r '.runs[].results[] | select(.level == "error") | .locations[].physicalLocation.artifactLocation.uri' snyk.sarif > commit_urls.txt
+              high_vuln=$(cat snyk.sarif | jq -r '.runs[0].results | map(select(.level == "error")) | .[] | "\(.ruleId): \(.message.text)"')
+              echo "RESULTS_HIGH_Vuln=$high_vuln" >> $GITHUB_ENV
+      
+    #  - name: Extract commit URLs from SARIF file
+     #   id: extract_commits
+      #  run: |
+       #   jq -r '.runs[].results[] | select(.level == "error") | .locations[].physicalLocation.artifactLocation.uri' snyk.sarif > commit_urls.txt
       - name: Print Commit URLS
         run: cat commit_urls.txt
       
