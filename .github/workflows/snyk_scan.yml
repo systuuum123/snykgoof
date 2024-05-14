@@ -34,7 +34,6 @@ jobs:
       - name: High Vulnerabilities
         run: |
               high_vuln=$(cat snyk.sarif | jq -r '.runs[0].results | map(select(.level == "error")) | .[] | "\(.ruleId): \(.message.text)"')
-              echo "RESULTS_HIGH_Vuln=$high_vuln" >> $GITHUB_ENV
       
     #  - name: Extract commit URLs from SARIF file
      #   id: extract_commits
