@@ -54,7 +54,7 @@ jobs:
         with:
           payload: |
                 {
-                   "text": "*The Snyk scan result for repo , snykgoof, is : ${{ job.status }}* \n*Number of vulnerabilities : ${{ env.RESULTS_LENGTH }}* \n*High : ${{ env.RESULTS_HIGH }}* \n*Medium : ${{ env.RESULTS_MEDIUM }}* \n*Low : ${{ env.RESULTS_LOW }}* \n*Age : ${{ env.RESULTS_AGE }}* \n*Age_Days : ${{ env.RESULTS_AGE_DAYS }}* \n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                   "text": "*The Snyk scan result for repo , snykgoof, is : ${{ job.status }}* \n*Number of vulnerabilities : ${{ env.RESULTS_LENGTH }}* \n*High : ${{ env.RESULTS_HIGH }}* \n*Medium : ${{ env.RESULTS_MEDIUM }}* \n*Low : ${{ env.RESULTS_LOW }}* \n*Age : ${{ env.RESULTS_AGE }}* \n*Age_Days : ${{ env.RESULTS_AGE_DAYS }}* \n*High_Vuln : ${{ env.RESULTS_HIGH_VULN }}* \n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                 }
         env:
             SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
