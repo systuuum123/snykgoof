@@ -54,5 +54,5 @@ jobs:
             HIGH_VULNS: ${{ env.HIGH_VULNS }}
             MEDIUM_VULNS: ${{ env.MEDIUM_VULNS }}
         run: |
-            payload=$(jq -n --arg text: "*The Snyk scan result for repo, snykgoof, is: ${{ job.status }}* \n*Number of vulnerabilities: ${{ env.RESULTS_TOTAL }}* \n*High: ${{ env.RESULTS_HIGH }}* \n*Medium: ${{ env.RESULTS_MEDIUM }}* \n*Low: ${{ env.RESULTS_LOW }}* \n*High Vulnerabilities:*\n${{ env.HIGH_VULNS }}\n*Medium Vulnerabilities:*\n${{ env.MEDIUM_VULNS }}\n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{text: $text}')
+            payload=$(jq -n --arg text: "*The Snyk scan result for repo, snykgoof, is: ${{ job.status }}* \n*Number of vulnerabilities: ${{ env.RESULTS_TOTAL }}* \n*High: ${{ env.RESULTS_HIGH }}* \n*Medium: ${{ env.RESULTS_MEDIUM }}* \n*Low: ${{ env.RESULTS_LOW }}* \n*High Vulnerabilities:*\n${{ env.HIGH_VULNS }}\n*Medium Vulnerabilities:*\n${{ env.MEDIUM_VULNS }}\n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" )
             curl -X POST -H "Content-type: application/json" --data "$payload" $SLACK_WEBHOOK_URL
