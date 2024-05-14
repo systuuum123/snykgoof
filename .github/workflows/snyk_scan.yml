@@ -13,40 +13,25 @@ jobs:
         with:
           command: code test
           args: --sarif-file-output=snyk.sarif
-      - name: Total Security Issues
+      - name: Calculate and save vulnerability details
         run: |
-              length=$(cat snyk.sarif | jq '.runs[0].results | length')
-              echo "RESULTS_LENGTH=$length" >> $GITHUB_ENV
-      - name: High
-        run: |
-              high=$(cat snyk.sarif | jq '.runs[0].results | map(select(.level == "error")) | length')
-              echo "RESULTS_HIGH=$high" >> $GITHUB_ENV          
-      - name: Medium
-        run: |
-              medium=$(cat snyk.sarif | jq '.runs[0].results | map(select(.level == "warning")) | length')
-              echo "RESULTS_MEDIUM=$medium" >> $GITHUB_ENV
-      - name: Low
-        run: |
-              low=$(cat snyk.sarif | jq '.runs[0].results | map(select(.level == "note")) | length')
-              echo "RESULTS_LOW=$low" >> $GITHUB_ENV
-      - name: Vulnerability Description
-        run: |
-              high_vuln=$(jq -r '.runs[0].results | map(select(.properties.severity == "high")) | .[] | "\(.ruleId): \(.message.text)"' snyk.sarif)
-              high_vulns_formatted=$(echo "$high_vuln" | sed ':a;N;$!ba;s/\n/\\n/g')
-              echo "$high_vulns_formatted" 
-              medium_vuln=$(jq -r '.runs[0].results | map(select(.level == "warning")) | .[] | "\(.ruleId): \(.message.text)"' snyk.sarif)
-              medium_vulns_formatted=$(echo "$medium_vuln" | sed ':a;N;$!ba;s/\n/\\n/g')
-              echo "$medium_vulns_formatted"
-              low_vuln=$(jq -r '.runs[0].results | map(select(.level == "note")) | .[] | "\(.ruleId): \(.message.text)"' snyk.sarif)
-              low_vulns_formatted=$(echo "$low_vuln" | sed ':a;N;$!ba;s/\n/\\n/g')
-              echo "$low_vulns_formatted"
-      
-    #  - name: Extract commit URLs from SARIF file
-     #   id: extract_commits
-      #  run: |
-       #   jq -r '.runs[].results[] | select(.level == "error") | .locations[].physicalLocation.artifactLocation.uri' snyk.sarif > commit_urls.txt
-      #- name: Print Commit URLS
-       # run: cat commit_urls.txt
+          high=$(jq '.runs[0].results | map(select(.properties.severity == "high")) | length' snyk.sarif)
+          medium=$(jq '.runs[0].results | map(select(.properties.severity == "medium")) | length' snyk.sarif)
+          low=$(jq '.runs[0].results | map(select(.properties.severity == "low")) | length' snyk.sarif)
+          total=$((high + medium + low))
+
+          echo "RESULTS_HIGH=$high" >> $GITHUB_ENV
+          echo "RESULTS_MEDIUM=$medium" >> $GITHUB_ENV
+          echo "RESULTS_LOW=$low" >> $GITHUB_ENV
+          echo "RESULTS_TOTAL=$total" >> $GITHUB_ENV
+
+          high_vulns=$(jq -r '.runs[0].results | map(select(.properties.severity == "high")) | .[] | "\(.properties.tags[0]): \(.message.text) (Path: \(.locations[0].physicalLocation.artifactLocation.uri), Line: \(.locations[0].physicalLocation.region.startLine))"' snyk.sarif)
+          high_vulns_formatted=$(echo "$high_vulns" | sed ':a;N;$!ba;s/\n/\\n/g')
+          echo "HIGH_VULNS=$high_vulns_formatted" >> $GITHUB_ENV
+
+          medium_vulns=$(jq -r '.runs[0].results | map(select(.properties.severity == "medium")) | .[] | "\(.properties.tags[0]): \(.message.text) (Path: \(.locations[0].physicalLocation.artifactLocation.uri), Line: \(.locations[0].physicalLocation.region.startLine))"' snyk.sarif)
+          medium_vulns_formatted=$(echo "$medium_vulns" | sed ':a;N;$!ba;s/\n/\\n/g')
+          echo "MEDIUM_VULNS=$medium_vulns_formatted" >> $GITHUB_ENV
       
       - name: Pass or Fail the Job
         run: |
@@ -58,12 +43,16 @@ jobs:
               fi
 
       - name: Send notification on Slack using Webhooks
-        uses: slackapi/slack-github-action@v1.24.0
+        #uses: slackapi/slack-github-action@v1.24.0
         if: always()
-        with:
-          payload: |
-                {
-                   "text": "*The Snyk scan result for repo , snykgoof, is : ${{ job.status }}* \n*Number of vulnerabilities : ${{ env.RESULTS_LENGTH }}* \n*High : ${{ env.RESULTS_HIGH }}* \n*Medium : ${{ env.RESULTS_MEDIUM }}* \n*Low : ${{ env.RESULTS_LOW }}* \n*Age : ${{ env.RESULTS_AGE }}* \n*Age_Days : ${{ env.RESULTS_AGE_DAYS }}* \n*High_Vuln: $high_vuln* \n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                }
         env:
             SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+            RESULTS_TOTAL: ${{ env.RESULTS_TOTAL }}
+            RESULTS_HIGH: ${{ env.RESULTS_HIGH }}
+            RESULTS_MEDIUM: ${{ env.RESULTS_MEDIUM }}
+            RESULTS_LOW: ${{ env.RESULTS_LOW }}
+            HIGH_VULNS: ${{ env.HIGH_VULNS }}
+            MEDIUM_VULNS: ${{ env.MEDIUM_VULNS }}
+        run: |
+            payload=$(jq -n --arg text: "*The Snyk scan result for repo, snykgoof, is: ${{ job.status }}* \n*Number of vulnerabilities: ${{ env.RESULTS_TOTAL }}* \n*High: ${{ env.RESULTS_HIGH }}* \n*Medium: ${{ env.RESULTS_MEDIUM }}* \n*Low: ${{ env.RESULTS_LOW }}* \n*High Vulnerabilities:*\n${{ env.HIGH_VULNS }}\n*Medium Vulnerabilities:*\n${{ env.MEDIUM_VULNS }}\n*Detail*: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{text: $text}')
+            curl -X POST -H "Content-type: application/json" --data "$payload" $SLACK_WEBHOOK_URL
