@@ -35,7 +35,7 @@ jobs:
       
       - name: Pass or Fail the Job
         run: |
-              if ["$RESULTS_LENGTH" !=0 ]; then
+              if ["$RESULTS_TOTAL" !=0 ]; then
                 echo "Job Failed"
                 exit 1
               else
