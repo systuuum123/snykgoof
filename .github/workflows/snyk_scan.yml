@@ -34,13 +34,14 @@ jobs:
       - name: High Vulnerabilities
         run: |
               high_vuln=$(cat snyk.sarif | jq -r '.runs[0].results | map(select(.level == "error")) | .[] | "\(.ruleId): \(.message.text)"')
+              echo "$high_vuln"
       
     #  - name: Extract commit URLs from SARIF file
      #   id: extract_commits
       #  run: |
        #   jq -r '.runs[].results[] | select(.level == "error") | .locations[].physicalLocation.artifactLocation.uri' snyk.sarif > commit_urls.txt
-      - name: Print Commit URLS
-        run: cat commit_urls.txt
+      #- name: Print Commit URLS
+       # run: cat commit_urls.txt
       
       - name: Pass or Fail the Job
         run: |
