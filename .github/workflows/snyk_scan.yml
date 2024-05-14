@@ -20,9 +20,7 @@ jobs:
       - name: High
         run: |
               high=$(cat snyk.sarif | jq '.runs[0].results | map(select(.level == "error")) | length')
-              echo "RESULTS_HIGH=$high" >> $GITHUB_ENV
-              high_vuln=$(cat snyk.sarif | jq -r '.runs[0].results | map(select(.level == "error")) | .[] | "\(.ruleId): \(.message.text)"')
-              
+              echo "RESULTS_HIGH=$high" >> $GITHUB_ENV          
       - name: Medium
         run: |
               medium=$(cat snyk.sarif | jq '.runs[0].results | map(select(.level == "warning")) | length')
@@ -34,7 +32,7 @@ jobs:
       - name: High Vulnerabilities
         run: |
               high_vuln=$(cat snyk.sarif | jq -r '.runs[0].results | map(select(.level == "error")) | .[] | "\(.ruleId): \(.message.text)"')
-              echo "$high_vuln"
+              echo "RESULTS_HIGH_VULNS=$high_vuln" >> $GITHUB_ENV
       
     #  - name: Extract commit URLs from SARIF file
      #   id: extract_commits
