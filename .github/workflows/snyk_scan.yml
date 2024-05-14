@@ -32,11 +32,14 @@ jobs:
       - name: High Vulnerabilities
         run: |
               high_vuln=$(jq -r '.runs[0].results | map(select(.level == "error")) | .[] | "\(.ruleId): \(.message.text)"' snyk.sarif)
-              echo "$high_vuln" 
+              high_vulns_formatted=$(echo "$high_vuln" | sed ':a;N;$!ba;s/\n/\\n/g')
+              echo "$high_vulns_formatted" 
               medium_vuln=$(jq -r '.runs[0].results | map(select(.level == "warning")) | .[] | "\(.ruleId): \(.message.text)"' snyk.sarif)
-              echo "$medium_vuln"
+              medium_vulns_formatted=$(echo "$medium_vuln" | sed ':a;N;$!ba;s/\n/\\n/g')
+              echo "$medium_vulns_formatted"
               low_vuln=$(jq -r '.runs[0].results | map(select(.level == "note")) | .[] | "\(.ruleId): \(.message.text)"' snyk.sarif)
-              echo "$low_vuln"
+              low_vulns_formatted=$(echo "$low_vuln" | sed ':a;N;$!ba;s/\n/\\n/g')
+              echo "$low_vulns_formatted"
       
     #  - name: Extract commit URLs from SARIF file
      #   id: extract_commits
