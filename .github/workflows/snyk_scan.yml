@@ -33,6 +33,10 @@ jobs:
         run: |
               high_vuln=$(jq -r '.runs[0].results | map(select(.level == "error")) | .[] | "\(.ruleId): \(.message.text)"' snyk.sarif)
               echo "$high_vuln" 
+              medium_vuln=$(jq -r '.runs[0].results | map(select(.level == "warning")) | .[] | "\(.ruleId): \(.message.text)"' snyk.sarif)
+              echo "$medium_vuln"
+              low_vuln=$(jq -r '.runs[0].results | map(select(.level == "note")) | .[] | "\(.ruleId): \(.message.text)"' snyk.sarif)
+              echo "$low_vuln"
       
     #  - name: Extract commit URLs from SARIF file
      #   id: extract_commits
