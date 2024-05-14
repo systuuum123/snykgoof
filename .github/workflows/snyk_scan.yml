@@ -29,9 +29,9 @@ jobs:
         run: |
               low=$(cat snyk.sarif | jq '.runs[0].results | map(select(.level == "note")) | length')
               echo "RESULTS_LOW=$low" >> $GITHUB_ENV
-      - name: High Vulnerabilities
+      - name: Vulnerability Description
         run: |
-              high_vuln=$(jq -r '.runs[0].results | map(select(.level == "error")) | .[] | "\(.ruleId): \(.message.text)"' snyk.sarif)
+              high_vuln=$(jq -r '.runs[0].results | map(select(.properties.severity == "high")) | .[] | "\(.ruleId): \(.message.text) (Path: \(.locations[0].physicalLocation.artifactLocation.uri), Line: \(.locations[0].physicalLocation.region.startLine))"' snyk.sarif)
               high_vulns_formatted=$(echo "$high_vuln" | sed ':a;N;$!ba;s/\n/\\n/g')
               echo "$high_vulns_formatted" 
               medium_vuln=$(jq -r '.runs[0].results | map(select(.level == "warning")) | .[] | "\(.ruleId): \(.message.text)"' snyk.sarif)
