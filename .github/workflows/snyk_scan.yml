@@ -17,6 +17,8 @@ jobs:
         run: |
           echo "SARIF results for debugging:"
           jq '.runs[0].results[0]' snyk.sarif
+      - name: Print SARIF File
+        run: cat snyk.sarif
           
       - name: Calculate and save vulnerability details
         run: |
