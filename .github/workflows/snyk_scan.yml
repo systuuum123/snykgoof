@@ -22,9 +22,13 @@ jobs:
           medium_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="warning")] | length' snyk.sarif)
           low_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="note")] | length' snyk.sarif)
 
+          high_vulnerability_names=$(jq -r '[.runs[].results[] | select(.level=="error") | .message.text] | join(", ")' snyk.sarif)
+          medium_vulnerability_names=$(jq -r '[.runs[].results[] | select(.level=="warning") | .message.text] | join(", ")' snyk.sarif)
+          low_vulnerability_names=$(jq -r '[.runs[].results[] | select(.level=="note") | .message.text] | join(", ")' snyk.sarif)
+
           echo "Sending notification to Slack..."
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Snyk Vulnerability Report:\n\nTotal Vulnerabilities: '"$total_vulnerabilities"'\nHigh: '"$high_vulnerabilities"'\nMedium: '"$medium_vulnerabilities"'\nLow: '"$low_vulnerabilities"'"
+            "text": "Snyk Vulnerability Report:\n\nTotal Vulnerabilities: '"$total_vulnerabilities"'\n\nHigh: '"$high_vulnerabilities"'\n'"$high_vulnerability_names"'\n\nMedium: '"$medium_vulnerabilities"'\n'"$medium_vulnerability_names"'\n\nLow: '"$low_vulnerabilities"'\n'"$low_vulnerability_names"'"
           }' ${{ secrets.SLACK_WEBHOOK_URL }}
       
       - name: Pass or Fail the Job
