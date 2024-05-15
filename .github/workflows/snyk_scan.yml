@@ -28,7 +28,7 @@ jobs:
       
       - name: Pass or Fail the Job
         run: |
-              if ["$RESULTS_TOTAL" !=0 ]; then
+              if ["$total_vulnerabilities" !=0 ]; then
                 echo "Job Failed"
                 exit 1
               else
