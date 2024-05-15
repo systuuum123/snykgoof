@@ -22,9 +22,9 @@ jobs:
           medium_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="warning")] | length' snyk.sarif)
           low_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="note")] | length' snyk.sarif)
 
-          high_vulnerability_names=$(jq -r '[.runs[].results[] | select(.level=="error") | .message.text] | join(", ")' snyk.sarif)
-          medium_vulnerability_names=$(jq -r '[.runs[].results[] | select(.level=="warning") | .message.text] | join(", ")' snyk.sarif)
-          low_vulnerability_names=$(jq -r '[.runs[].results[] | select(.level=="note") | .message.text] | join(", ")' snyk.sarif)
+          high_vulnerability_names=$(jq -r '[.runs[].results[] | select(.level=="error") | .ruleId] | unique | join(", ")' snyk.sarif)
+          medium_vulnerability_names=$(jq -r '[.runs[].results[] | select(.level=="warning") | .ruleId] | unique | join(", ")' snyk.sarif)
+          low_vulnerability_names=$(jq -r '[.runs[].results[] | select(.level=="note") | .ruleId] | unique | join(", ")' snyk.sarif)
 
           echo "Sending notification to Slack..."
           curl -X POST -H 'Content-type: application/json' --data '{
