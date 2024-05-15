@@ -22,11 +22,11 @@ jobs:
           medium_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="warning")] | length' snyk.sarif)
           low_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="note")] | length' snyk.sarif)
 
-          high_vulnerability_details=$(jq -r '[.runs[].results[] | select(.level=="error") | {name: .message.text, path: .locations[].physicalLocation.artifactLocation.uri, line: .locations[].physicalLocation.region.startLine}] | unique | .[] | "Name: \(.name)\nPath: \(.path), line \(.line)"' snyk.sarif | paste -sd "\n" -)
+          high_vulnerability_details=$(jq -r '[.runs[].results[] | select(.level=="error") | {name: .ruleId, path: .locations[].physicalLocation.artifactLocation.uri, line: .locations[].physicalLocation.region.startLine}] | unique | .[] | "Name: \(.name)\nPath: \(.path), line \(.line)"' snyk.sarif | paste -sd "\n" -)
           
-          medium_vulnerability_details=$(jq -r '[.runs[].results[] | select(.level=="warning") | {name: .message.text, path: .locations[].physicalLocation.artifactLocation.uri, line: .locations[].physicalLocation.region.startLine}] | unique | .[] | "Name: \(.name)\nPath: \(.path), line \(.line)"' snyk.sarif | paste -sd "\n" -)
+          medium_vulnerability_details=$(jq -r '[.runs[].results[] | select(.level=="warning") | {name: .ruleId, path: .locations[].physicalLocation.artifactLocation.uri, line: .locations[].physicalLocation.region.startLine}] | unique | .[] | "Name: \(.name)\nPath: \(.path), line \(.line)"' snyk.sarif | paste -sd "\n" -)
 
-          low_vulnerability_details=$(jq -r '[.runs[].results[] | select(.level=="note") | {name: .message.text, path: .locations[].physicalLocation.artifactLocation.uri, line: .locations[].physicalLocation.region.startLine}] | unique | .[] | "Name: \(.name)\nPath: \(.path), line \(.line)"' snyk.sarif | paste -sd "\n" -)
+          low_vulnerability_details=$(jq -r '[.runs[].results[] | select(.level=="note") | {name: .ruleId, path: .locations[].physicalLocation.artifactLocation.uri, line: .locations[].physicalLocation.region.startLine}] | unique | .[] | "Name: \(.name)\nPath: \(.path), line \(.line)"' snyk.sarif | paste -sd "\n" -)
           
           echo "Sending notification to Slack..."
           curl -X POST -H 'Content-type: application/json' --data '{
