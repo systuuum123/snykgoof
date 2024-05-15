@@ -17,6 +17,7 @@ jobs:
         run: |
           echo "Parsing Snyk SARIF output..."
           total_vulnerabilities=$(jq '[.runs[].results[]] | length' snyk.sarif)
+          echo "RESULTS_LENGTH=$total_vulnerabilities" >> $GITHUB_ENV
           high_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="error")] | length' snyk.sarif)
           medium_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="warning")] | length' snyk.sarif)
           low_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="note")] | length' snyk.sarif)
@@ -28,7 +29,7 @@ jobs:
       
       - name: Pass or Fail the Job
         run: |
-              if ["$total_vulnerabilities" !=0 ]; then
+              if ["$RESULTS_LENGTH" !=0 ]; then
                 echo "Job Failed"
                 exit 1
               else
