@@ -29,7 +29,7 @@ jobs:
           medium_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="warning")] | length' snyk.sarif)
           low_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="note")] | length' snyk.sarif)
 
-          high_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "error") | .shortDescription.text' snyk.sarif)
+          high_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "error") | [.shortDescription.text, (.locations[] | .physicalLocation.artifactLocation.uri + ":" + (.physicalLocation.region.startLine | tostring))] | join(", ")' snyk.sarif)
           medium_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "warning") | .shortDescription.text as $description | .locations[] | "Description: \($description), path: \(.physicalLocation.artifactLocation.uri), line: \(.physicalLocation.region.startLine)" ' snyk.sarif)
           low_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "note") | .shortDescription.text' snyk.sarif)
           
