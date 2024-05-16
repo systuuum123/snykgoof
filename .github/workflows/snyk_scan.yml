@@ -24,8 +24,8 @@ jobs:
           medium_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "warning") | .shortDescription.text' snyk.sarif | wc -l)
           low_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "note") | .shortDescription.text' snyk.sarif | wc -l)
       
-          high_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "warning") | [(.shortDescription.text // .shortDescription | tostring), if .locations then (.locations[] | .physicalLocation.artifactLocation.uri + ":" + (.physicalLocation.region.startLine | tostring)) else [] end] | .[] | join(", ")' snyk.sarif)
-         
+          high_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "warning") | [.shortDescription.text, (if .locations then (.locations[] | .physicalLocation.artifactLocation.uri + ":" + (.physicalLocation.region.startLine | tostring)) else [] end)] | join(", ")' snyk.sarif)
+          
           echo "Sending notification to Slack..."
           curl -X POST -H 'Content-type: application/json' --data '{
             "text": "Snyk Vulnerability Report:\n\nTotal Vulnerabilities: '"$total_vulnerabilities"'\n\nHigh: '"$high_vulnerabilities"'\n'"$high_vulnerability_details"'\n\nMedium: '"$medium_vulnerabilities"'\n'"$medium_vulnerability_details"'\n\nLow: '"$low_vulnerabilities"'\n'"$low_vulnerability_details"'"
