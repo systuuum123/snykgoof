@@ -16,21 +16,18 @@ jobs:
       - name: Calculate and save vulnerability details
         run: |
           echo "Parsing Snyk SARIF output..."
-          total_vulnerabilities=$(jq '.runs[].tool.driver.rules | length' snyk.sarif)
+          total_vulnerabilities=$(jq '.results | length' snyk.sarif)
           echo "RESULTS_LENGTH=$total_vulnerabilities" >> $GITHUB_ENV
       
-          high_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "error") | .shortDescription.text' snyk.sarif | wc -l)
-          medium_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "warning") | .shortDescription.text' snyk.sarif | wc -l)
-          low_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "note") | .shortDescription.text' snyk.sarif | wc -l)
-      
-          high_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "error") | {description: .shortDescription.text, path: .locations[].physicalLocation.artifactLocation.uri, line: .locations[].physicalLocation.region.startLine} | "Description: \(.description)\nPath: \(.path), line \(.line)"' snyk.sarif | paste -sd "\n" -)
-          medium_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "warning") | {description: .shortDescription.text, path: .locations[].physicalLocation.artifactLocation.uri, line: .locations[].physicalLocation.region.startLine} | "Description: \(.description)\nPath: \(.path), line \(.line)"' snyk.sarif | paste -sd "\n" -)
-          low_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "note") | {description: .shortDescription.text, path: .locations[].physicalLocation.artifactLocation.uri, line: .locations[].physicalLocation.region.startLine} | "Description: \(.description)\nPath: \(.path), line \(.line)"' snyk.sarif | paste -sd "\n" -)
+          high_vulnerability_details=$(jq -r '.results[] | select(.level == "error") | "Description: \(.message.text)\nPath: \(.locations[0].physicalLocation.artifactLocation.uri), line \(.locations[0].physicalLocation.region.startLine)"' snyk.sarif | paste -sd "\n" -)
+          medium_vulnerability_details=$(jq -r '.results[] | select(.level == "warning") | "Description: \(.message.text)\nPath: \(.locations[0].physicalLocation.artifactLocation.uri), line \(.locations[0].physicalLocation.region.startLine)"' snyk.sarif | paste -sd "\n" -)
+          low_vulnerability_details=$(jq -r '.results[] | select(.level == "note") | "Description: \(.message.text)\nPath: \(.locations[0].physicalLocation.artifactLocation.uri), line \(.locations[0].physicalLocation.region.startLine)"' snyk.sarif | paste -sd "\n" -)
       
           echo "Sending notification to Slack..."
           curl -X POST -H 'Content-type: application/json' --data '{
             "text": "Snyk Vulnerability Report:\n\nTotal Vulnerabilities: '"$total_vulnerabilities"'\n\nHigh: '"$high_vulnerabilities"'\n'"$high_vulnerability_details"'\n\nMedium: '"$medium_vulnerabilities"'\n'"$medium_vulnerability_details"'\n\nLow: '"$low_vulnerabilities"'\n'"$low_vulnerability_details"'"
           }' ${{ secrets.SLACK_WEBHOOK_URL }}
+
       
       - name: Pass or Fail the Job
         run: |
