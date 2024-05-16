@@ -14,26 +14,30 @@ jobs:
           command: code test --json > snyk-result.json
             cat snyk-result.json
     
-          
+      - name: Format Slack message
+        id: format-slack-message
+        run: |
+        vulnerabilities=$(jq -r '.vulnerabilities[] | "* \(.severity) - \(.title)\n  Path: \(.from[] | join(", "))\n  Info: \(.url)"' snyk-result.json)
+        echo "$vulnerabilities" > vulnerabilities.txt
+        summary=$(jq -r '"* \(.uniqueCount) unique vulnerabilities found\n* High: \(.highCount)\n* Medium: \(.mediumCount)\n* Low: \(.lowCount)"' snyk-result.json)
+        echo "$summary" > summary.txt
+
       - name: Send Slack notification
-        if: failure()
-        uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_COLOR: danger
-          SLACK_TITLE: "Snyk Vulnerability Report"
-          SLACK_MESSAGE: "Snyk scan completed with vulnerabilities found."
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          args: snyk-result.json
-
-      - name: Send Slack notification for success
-        if: success()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_COLOR: good
-          SLACK_TITLE: "Snyk Vulnerability Report"
-          SLACK_MESSAGE: "Snyk scan completed with no vulnerabilities found."
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          args: snyk-result.json
-
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+        payload=$(jq -n --arg summary "$(cat summary.txt)" --arg vulnerabilities "$(cat vulnerabilities.txt)" \
+        '{
+          "text": "Snyk Vulnerability Report",
+          "blocks": [
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Snyk Vulnerability Report*\n\n*Summary:*\n\($summary)\n\n*Details:*\n\($vulnerabilities)"
+              }
+            }
+          ]
+        }')
+        echo "$payload" > payload.json
+        curl -X POST -H 'Content-type: application/json' --data "@payload.json" $SLACK_WEBHOOK_URL
