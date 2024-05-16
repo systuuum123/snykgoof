@@ -29,7 +29,7 @@ jobs:
           medium_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="warning")] | length' snyk.sarif)
           low_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="note")] | length' snyk.sarif)
 
-          high_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] as $rule | select($rule.defaultConfiguration.level == "error") | $rule.shortDescription.text as $description | $rule.locations[] // []) | "Description: \($description), Path: \(.physicalLocation.artifactLocation.uri // "N/A"), Line: \(.physicalLocation.region.startLine  // "N/A")" ' snyk.sarif)
+          high_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] as $rule | select($rule.defaultConfiguration.level == "error") | shortDescription.text as $description | if .locations then .locations[] | "path: \(.physicalLocation.artifactLocation.uri), line: \(.physicalLocation.region.startLine)" else "No locations found for \($description)" end ' snyk.sarif)
           medium_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "warning") | .shortDescription.text' snyk.sarif)
           low_vulnerability_details=$(jq -r '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "note") | .shortDescription.text' snyk.sarif)
           
