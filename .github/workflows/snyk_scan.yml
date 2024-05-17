@@ -20,10 +20,7 @@ jobs:
           total_vulnerabilities=$(jq '.runs[].tool.driver.rules | length' snyk.sarif)
           echo "RESULTS_LENGTH=$total_vulnerabilities" >> $GITHUB_ENV
           
-          high_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "error") | .shortDescription.text' snyk.sarif) 
-        #  high_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "error") | .shortDescription.text' snyk.sarif | wc -l)
-        #  medium_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "warning") | .shortDescription.text' snyk.sarif | wc -l)
-         # low_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "note") | .shortDescription.text' snyk.sarif | wc -l)
+          high_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "error") | .shortDescription.text' snyk.sarif)
       
           
           echo "Sending notification to Slack..."
