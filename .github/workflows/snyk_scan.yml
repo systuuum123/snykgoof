@@ -17,11 +17,15 @@ jobs:
       - name: Calculate and save vulnerability details
         run: |
           echo "Parsing Snyk SARIF output..."
-          total_vulnerabilities=$(jq '.runs[].tool.driver.rules | length' snyk.sarif)
+          total_vulnerabilities=$(jq '[.runs[].results[]] | length' snyk.sarif)
           echo "RESULTS_LENGTH=$total_vulnerabilities" >> $GITHUB_ENV
-          
+          high_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="error")] | length' snyk.sarif)
+          medium_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="warning")] | length' snyk.sarif)
+          low_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="note")] | length' snyk.sarif)
+
           high_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "error") | {shortDescription: .shortDescription.text, path: .physicalLocation.artifactLocation.uri}' snyk.sarif)
-      
+          medium_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "warning") | {shortDescription: .shortDescription.text, path: .physicalLocation.artifactLocation.uri}' snyk.sarif)
+          low_vulnerabilities=$(jq '.runs[].tool.driver.rules[] | select(.defaultConfiguration.level == "note") | {shortDescription: .shortDescription.text, path: .physicalLocation.artifactLocation.uri}' snyk.sarif)
           
           echo "Sending notification to Slack..."
           curl -X POST -H 'Content-type: application/json' --data '{
