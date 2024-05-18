@@ -32,7 +32,7 @@ jobs:
           high_vulnerabilities_test=$(jq -r '
             .runs[].results[]? | 
             select(.level == "error") | 
-            .message.text as $shortDescription | 
+            .shortDescription.text as $shortDescription | 
             .locations[]?.physicalLocation.artifactLocation.uri as $path | 
             "\($shortDescription) path: \($path)"
           ' snyk.sarif)
