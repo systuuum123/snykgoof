@@ -31,7 +31,7 @@ jobs:
         run: |
           high_vulnerabilities_test=$(jq -r '
             .runs[].tool.driver.rules[]? | 
-            select(.level == "error") | 
+            select(.defaultConfiguration.level == "error") | 
             .shortDescription.text as $shortDescription | 
             .locations[]?.physicalLocation.artifactLocation.uri as $path | 
             "\($shortDescription) path: \($path)"
