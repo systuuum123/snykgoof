@@ -30,7 +30,7 @@ jobs:
       - name: Parse and print high vulnerabilities
         run: |
           high_vulnerabilities_test=$(jq -r '
-            .runs[].results[]? | 
+            .runs[].tool.driver.rules[]? | 
             select(.level == "error") | 
             .shortDescription.text as $shortDescription | 
             .locations[]?.physicalLocation.artifactLocation.uri as $path | 
