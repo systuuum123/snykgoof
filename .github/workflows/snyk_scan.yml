@@ -20,9 +20,12 @@ jobs:
           total_vulnerabilities=$(jq '[.runs[].results[]] | length' snyk.sarif)
           echo "RESULTS_LENGTH=$total_vulnerabilities" >> $GITHUB_ENV
           high_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="error")] | length' snyk.sarif)
-          echo "$high_vulnerabilities"
           medium_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="warning")] | length' snyk.sarif)
           low_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="note")] | length' snyk.sarif)
+
+          echo "HIGH_VULNERABILITIES=$high_vulnerabilities" >> $GITHUB_ENV
+          echo "MEDIUM_VULNERABILITIES=$medium_vulnerabilities" >> $GITHUB_ENV
+          echo "LOW_VULNERABILITIES=$low_vulnerabilities" >> $GITHUB_ENV
 
           
       - name: details
@@ -53,7 +56,7 @@ jobs:
           details=$(cat details.txt)
           echo "Sending notification to Slack..."
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$total_vulnerabilities"'\nHigh: '"$high_vulnerabilities"'\nMedium: '"$medium_vulnerabilities"'\nLow: '"$low_vulnerabilities"'\nDetails:\n'"$details"'"
+            "text": "Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$RESULTS_LENGTH"'\nHigh: '"$HIGH_VULNERABILITIES"'\nMedium: '"$MEDIUM_VULNERABILITIES"'\nLow: '"$LOW_VULNERABILITIES"'\nDetails:\n'"$details"'"
           }' ${{ secrets.SLACK_WEBHOOK_URL }}
 
           
