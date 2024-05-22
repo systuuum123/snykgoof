@@ -46,13 +46,17 @@ jobs:
               '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | "\($index),\($desc),\(.locations[].physicalLocation.artifactLocation.uri),\(.locations[].physicalLocation.region.startLine)"' \
               "$sarif_file"
           done
-
-
-          
+          echo "$details" > details.txt
+      
+      - name: Send Snyk details to Slack
+        run: |
+          details=$(cat details.txt)
           echo "Sending notification to Slack..."
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Snyk Vulnerability Report:\n\nTotal Vulnerabilities: '"$total_vulnerabilities"'\n\nHigh: '"$high_vulnerabilities"'\n'"$high_vulnerability_details"'\n\nMedium: '"$medium_vulnerabilities"'\n'"$medium_vulnerability_details"'\n\nLow: '"$low_vulnerabilities"'\n'"$low_vulnerability_details"'"
+            "text": "Snyk Vulnerability Report Details:\n\n'"$details"'"
           }' ${{ secrets.SLACK_WEBHOOK_URL }}
+
+          
       
       - name: Pass or Fail the Job
         run: |
