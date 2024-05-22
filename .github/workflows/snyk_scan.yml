@@ -43,7 +43,7 @@ jobs:
           # Extract the required fields and print to the terminal
           for index in "${!descriptions[@]}"; do
             result=$(jq --arg index "$index" --arg desc "${descriptions[$index]}" -r \
-              '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | "\($desc),\(.locations[].physicalLocation.artifactLocation.uri),\(.locations[].physicalLocation.region.startLine)"' \
+              '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | "\($desc),\n path: (.locations[].physicalLocation.artifactLocation.uri),\(.locations[].physicalLocation.region.startLine)"' \
               "$sarif_file")
             details+="$result\n"
           done
