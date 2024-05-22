@@ -43,7 +43,7 @@ jobs:
           # Extract the required fields and print to the terminal
           for index in "${!descriptions[@]}"; do
             result=$(jq --arg index "$index" --arg desc "${descriptions[$index]}" -r \
-              '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | "\($desc),\n path: \(.locations[].physicalLocation.artifactLocation.uri),\(.locations[].physicalLocation.region.startLine)"' \
+              '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | "\($desc), Path: \(.locations[].physicalLocation.artifactLocation.uri), Line: \(.locations[].physicalLocation.region.startLine)"' \
               "$sarif_file")
             details+="$result\n"
           done
@@ -55,7 +55,7 @@ jobs:
           details=$(cat details.txt)
           echo "Sending notification to Slack..."
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Snyk Vulnerability Report Details:\n\n'"$details"'"
+            "text": ""Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$total_vulnerabilities"'\nHigh: '"$high_vulnerabilities"'\nMedium: '"$medium_vulnerabilities"'\nLow: '"$low_vulnerabilities"'\nDetails:'"$details"'"
           }' ${{ secrets.SLACK_WEBHOOK_URL }}
 
           
