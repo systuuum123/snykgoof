@@ -35,19 +35,24 @@ jobs:
           # Define the SARIF file
           sarif_file="snyk.sarif"
 
-          # Retrieve the descriptions dynamically and store them in an array
+          # Retrieve the descriptions and dates dynamically and store them in arrays
           mapfile -t descriptions < <(jq -r '.runs[].tool.driver.rules[].shortDescription.text' snyk.sarif)
+          mapfile -t dates < <(jq -r '.runs[].results[].partialFingerprints."timestamp"' snyk.sarif)
 
-          # Print the header
-          echo "index,shortDescription.text,artifactlocationuri,startline"
+          # Initialize a variable to store the results
+          details="index,shortDescription.text,artifactlocationuri,startline,age(days)\n"
 
-          # Extract the required fields and print to the terminal
+          # Extract the required fields and append to the details variable
           for index in "${!descriptions[@]}"; do
-            result=$(jq --arg index "$index" --arg desc "${descriptions[$index]}" -r \
-              '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | "\($desc), Path: \(.locations[].physicalLocation.artifactLocation.uri), Line: \(.locations[].physicalLocation.region.startLine)"' \
+            detection_date=$(date -d "${dates[$index]}" +%s)
+            current_date=$(date +%s)
+            age=$(( (current_date - detection_date) / 86400 ))
+
+            result=$(jq --arg index "$index" --arg desc "${descriptions[$index]}" --arg age "$age" -r \
+              '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | "\($index),\($desc),\(.locations[].physicalLocation.artifactLocation.uri),\(.locations[].physicalLocation.region.startLine),\($age)"' \
               "$sarif_file")
             details+="$result\n"
-          done
+            done
 
           echo "$details" > details.txt
       
