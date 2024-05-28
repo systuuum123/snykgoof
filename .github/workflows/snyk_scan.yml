@@ -26,14 +26,14 @@ jobs:
           echo "HIGH_VULNERABILITIES=$high_vulnerabilities" >> $GITHUB_ENV
           echo "MEDIUM_VULNERABILITIES=$medium_vulnerabilities" >> $GITHUB_ENV
           echo "LOW_VULNERABILITIES=$low_vulnerabilities" >> $GITHUB_ENV
-          
-      - name: details
+
+      - name: Calculate vulnerability details and age
         run: |
           #!/bin/bash
 
           # Define the SARIF file
           sarif_file="snyk.sarif"
-          
+
           # Check if previous_scan_dates.txt exists, if not create it with today's date
           if [ ! -f .github/workflows/previous_scan_dates.txt ]; then
             echo "$(date +%Y-%m-%d)" > .github/workflows/previous_scan_dates.txt
@@ -66,15 +66,6 @@ jobs:
           done
 
           echo -e "$details" > details.txt
-      
-      - name: Send Snyk details to Slack
-        run: |
-          details=$(cat details.txt)
-          echo "Sending notification to Slack..."
-          curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$RESULTS_LENGTH"'\nHigh: '"$HIGH_VULNERABILITIES"'\nMedium: '"$MEDIUM_VULNERABILITIES"'\nLow: '"$LOW_VULNERABILITIES"'\nDetails:\n'"$details"'"
-          }' ${{ secrets.SLACK_WEBHOOK_URL }}
-          
 
       - name: Commit updated scan date
         run: |
@@ -83,3 +74,20 @@ jobs:
           git add .github/workflows/previous_scan_dates.txt
           git commit -m "Update previous scan dates"
           git push
+
+      - name: Send Snyk details to Slack
+        run: |
+          details=$(cat details.txt)
+          echo "Sending notification to Slack..."
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$RESULTS_LENGTH"'\nHigh: '"$HIGH_VULNERABILITIES"'\nMedium: '"$MEDIUM_VULNERABILITIES"'\nLow: '"$LOW_VULNERABILITIES"'\nDetails:\n'"$details"'"
+          }' ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Pass or Fail the Job
+        run: |
+          if [ "$RESULTS_LENGTH" != 0 ]; then
+            echo "Job Failed"
+            exit 1
+          else
+            echo "Pass"
+          fi
