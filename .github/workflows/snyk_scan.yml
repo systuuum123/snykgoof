@@ -1,11 +1,10 @@
-
 name: Example workflow for Node using Snyk
 on: push
 jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
         continue-on-error: true
@@ -14,6 +13,7 @@ jobs:
         with:
           command: code test
           args: --sarif-file-output=snyk.sarif
+
       - name: Calculate and save vulnerability details
         run: |
           echo "Parsing Snyk SARIF output..."
@@ -26,7 +26,6 @@ jobs:
           echo "HIGH_VULNERABILITIES=$high_vulnerabilities" >> $GITHUB_ENV
           echo "MEDIUM_VULNERABILITIES=$medium_vulnerabilities" >> $GITHUB_ENV
           echo "LOW_VULNERABILITIES=$low_vulnerabilities" >> $GITHUB_ENV
-
           
       - name: details
         run: |
@@ -34,22 +33,39 @@ jobs:
 
           # Define the SARIF file
           sarif_file="snyk.sarif"
+          
+          # Check if previous_scan_dates.txt exists, if not create it with today's date
+          if [ ! -f .github/scripts/previous_scan_dates.txt ]; then
+            echo "$(date +%Y-%m-%d)" > .github/scripts/previous_scan_dates.txt
+          fi
+
+          # Read the initial scan date (the first entry in the file)
+          initial_scan_date=$(head -n 1 .github/scripts/previous_scan_dates.txt)
+
+          # Append today's date to the file
+          echo "$(date +%Y-%m-%d)" >> .github/scripts/previous_scan_dates.txt
+
+          # Calculate the age of vulnerabilities based on initial scan date and current date
+          INITIAL_DATE=$(date -d "$initial_scan_date" +%s)
+          CURRENT_DATE=$(date +%s)
+          AGE=$(( (CURRENT_DATE - INITIAL_DATE) / (60*60*24) ))
 
           # Retrieve the descriptions dynamically and store them in an array
           mapfile -t descriptions < <(jq -r '.runs[].tool.driver.rules[].shortDescription.text' snyk.sarif)
 
           # Print the header
-          echo "index,shortDescription.text,artifactlocationuri,startline"
+          echo "index,shortDescription.text,artifactlocationuri,startline,age"
 
           # Extract the required fields and print to the terminal
+          details=""
           for index in "${!descriptions[@]}"; do
-            result=$(jq --arg index "$index" --arg desc "${descriptions[$index]}" -r \
-              '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | "\($desc), Path: \(.locations[].physicalLocation.artifactLocation.uri), Line: \(.locations[].physicalLocation.region.startLine)"' \
+            result=$(jq --arg index "$index" --arg desc "${descriptions[$index]}" --arg age "$AGE" -r \
+              '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | "\($desc), Path: \(.locations[].physicalLocation.artifactLocation.uri), Line: \(.locations[].physicalLocation.region.startLine), Age: \($age)"' \
               "$sarif_file")
             details+="$result\n"
           done
 
-          echo "$details" > details.txt
+          echo -e "$details" > details.txt
       
       - name: Send Snyk details to Slack
         run: |
@@ -58,14 +74,20 @@ jobs:
           curl -X POST -H 'Content-type: application/json' --data '{
             "text": "Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$RESULTS_LENGTH"'\nHigh: '"$HIGH_VULNERABILITIES"'\nMedium: '"$MEDIUM_VULNERABILITIES"'\nLow: '"$LOW_VULNERABILITIES"'\nDetails:\n'"$details"'"
           }' ${{ secrets.SLACK_WEBHOOK_URL }}
-
           
-      
       - name: Pass or Fail the Job
         run: |
-              if ["$RESULTS_LENGTH" !=0 ]; then
-                echo "Job Failed"
-                exit 1
-              else
-                echo "Pass"
-              fi
+          if [ "$RESULTS_LENGTH" != 0 ]; then
+            echo "Job Failed"
+            exit 1
+          else
+            echo "Pass"
+          fi
+
+      - name: Commit updated scan date
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git add .github/scripts/previous_scan_dates.txt
+          git commit -m "Update previous scan dates"
+          git push
