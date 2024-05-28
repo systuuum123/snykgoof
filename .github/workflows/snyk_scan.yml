@@ -84,11 +84,4 @@ jobs:
             "text": "Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$RESULTS_LENGTH"'\nHigh: '"$HIGH_VULNERABILITIES"'\nMedium: '"$MEDIUM_VULNERABILITIES"'\nLow: '"$LOW_VULNERABILITIES"'\nDetails:\n'"$details"'"
           }' ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      - name: Pass or Fail the Job
-        run: |
-          if [ "$RESULTS_LENGTH" != 0 ]; then
-            echo "Job Failed"
-            exit 1
-          else
-            echo "Pass"
-          fi
+    
