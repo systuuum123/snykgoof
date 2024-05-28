@@ -34,16 +34,17 @@ jobs:
           # Define the SARIF file
           sarif_file="snyk.sarif"
 
-          # Check if previous_scan_dates.txt exists, if not create it with today's date
-          if [ ! -f .github/workflows/previous_scan_dates.txt ]; then
-            echo "$(date +%Y-%m-%d)" > .github/workflows/previous_scan_dates.txt
+          # Check if previous_scan_dates.txt exists in .github/data, if not create it with today's date
+          if [ ! -f .github/data/previous_scan_dates.txt ]; then
+            mkdir -p .github/data
+            echo "$(date +%Y-%m-%d)" > .github/data/previous_scan_dates.txt
           fi
 
           # Read the initial scan date (the first entry in the file)
-          initial_scan_date=$(head -n 1 .github/workflows/previous_scan_dates.txt)
+          initial_scan_date=$(head -n 1 .github/data/previous_scan_dates.txt)
 
           # Append today's date to the file
-          echo "$(date +%Y-%m-%d)" >> .github/workflows/previous_scan_dates.txt
+          echo "$(date +%Y-%m-%d)" >> .github/data/previous_scan_dates.txt
 
           # Calculate the age of vulnerabilities based on initial scan date and current date
           INITIAL_DATE=$(date -d "$initial_scan_date" +%s)
@@ -71,7 +72,7 @@ jobs:
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
-          git add .github/workflows/previous_scan_dates.txt
+          git add .github/data/previous_scan_dates.txt
           git commit -m "Update previous scan dates"
           git push
 
