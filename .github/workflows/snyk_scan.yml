@@ -102,4 +102,4 @@ jobs:
             "text": "Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$RESULTS_LENGTH"'\nHigh: '"$HIGH_VULNERABILITIES"'\nMedium: '"$MEDIUM_VULNERABILITIES"'\nLow: '"$LOW_VULNERABILITIES"'\nDetails:\n'"$details"'"
           }' ${{ secrets.SLACK_WEBHOOK_URL }}
 
-     
+      
