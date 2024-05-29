@@ -15,7 +15,7 @@ jobs:
             -H "Authorization: token $SNYK_TOKEN" \
             -H "Content-Type: application/json" \
             --data-binary @snyk-test.json \
-            -o snyk-results.json
+            -o snyk-results.json || { echo "Snyk API call failed"; cat snyk-results.json; exit 1; }
 
       - name: Output results for debugging
         run: |
@@ -25,19 +25,25 @@ jobs:
       - name: Calculate and save vulnerability details
         run: |
           echo "Parsing Snyk API output..."
-          total_vulnerabilities=$(jq '.issues.vulnerabilities | length' snyk-results.json)
-          echo "RESULTS_LENGTH=$total_vulnerabilities" >> $GITHUB_ENV
-          high_vulnerabilities=$(jq '[.issues.vulnerabilities[] | select(.severity=="high")] | length' snyk-results.json)
-          medium_vulnerabilities=$(jq '[.issues.vulnerabilities[] | select(.severity=="medium")] | length' snyk-results.json)
-          low_vulnerabilities=$(jq '[.issues.vulnerabilities[] | select(.severity=="low")] | length' snyk-results.json)
+          if jq -e . snyk-results.json > /dev/null 2>&1; then
+            total_vulnerabilities=$(jq '.issues.vulnerabilities | length' snyk-results.json)
+            echo "RESULTS_LENGTH=$total_vulnerabilities" >> $GITHUB_ENV
+            high_vulnerabilities=$(jq '[.issues.vulnerabilities[] | select(.severity=="high")] | length' snyk-results.json)
+            medium_vulnerabilities=$(jq '[.issues.vulnerabilities[] | select(.severity=="medium")] | length' snyk-results.json)
+            low_vulnerabilities=$(jq '[.issues.vulnerabilities[] | select(.severity=="low")] | length' snyk-results.json)
 
-          high_vulnerability_details=$(jq -r '.issues.vulnerabilities[] | select(.severity == "high") | [.title, .packageName, .version, .description] | join(", ")' snyk-results.json)
-          medium_vulnerability_details=$(jq -r '.issues.vulnerabilities[] | select(.severity == "medium") | [.title, .packageName, .version, .description] | join(", ")' snyk-results.json)
-          low_vulnerability_details=$(jq -r '.issues.vulnerabilities[] | select(.severity == "low") | [.title, .packageName, .version, .description] | join(", ")' snyk-results.json)
-          
-          echo "Sending notification to Slack..."
-          curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Snyk Vulnerability Report:\n\nTotal Vulnerabilities: '"$total_vulnerabilities"'\n\nHigh: '"$high_vulnerabilities"'\n'"$high_vulnerability_details"'\n\nMedium: '"$medium_vulnerabilities"'\n'"$medium_vulnerability_details"'\n\nLow: '"$low_vulnerabilities"'\n'"$low_vulnerability_details"'"
-          }' ${{ secrets.SLACK_WEBHOOK_URL }}
-      
-    
+            high_vulnerability_details=$(jq -r '.issues.vulnerabilities[] | select(.severity == "high") | [.title, .packageName, .version, .description] | join(", ")' snyk-results.json)
+            medium_vulnerability_details=$(jq -r '.issues.vulnerabilities[] | select(.severity == "medium") | [.title, .packageName, .version, .description] | join(", ")' snyk-results.json)
+            low_vulnerability_details=$(jq -r '.issues.vulnerabilities[] | select(.severity == "low") | [.title, .packageName, .version, .description] | join(", ")' snyk-results.json)
+            
+            echo "Sending notification to Slack..."
+            curl -X POST -H 'Content-type: application/json' --data '{
+              "text": "Snyk Vulnerability Report:\n\nTotal Vulnerabilities: '"$total_vulnerabilities"'\n\nHigh: '"$high_vulnerabilities"'\n'"$high_vulnerability_details"'\n\nMedium: '"$medium_vulnerabilities"'\n'"$medium_vulnerability_details"'\n\nLow: '"$low_vulnerabilities"'\n'"$low_vulnerability_details"'"
+            }' ${{ secrets.SLACK_WEBHOOK_URL }}
+          else
+            echo "Invalid JSON response"
+            cat snyk-results.json
+            exit 1
+          fi
+
+  
