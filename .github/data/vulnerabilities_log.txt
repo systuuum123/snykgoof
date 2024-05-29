@@ -9,3 +9,14 @@
 2024-05-29,javascript/NoRateLimitingForExpensiveWebOperation,routes/index.js,77
 2024-05-29,javascript/NoRateLimitingForExpensiveWebOperation,routes/index.js,166
 2024-05-29,javascript/NoRateLimitingForExpensiveWebOperation,routes/index.js,222
+2024-05-29,javascript/HttpToHttps,app.js,77
+2024-05-29,javascript/NoHardcodedPasswords,db.js,48
+2024-05-29,javascript/NoSqli,routes/index.js,39
+2024-05-29,javascript/NoSqli,routes/index.js,116
+2024-05-29,javascript/NoSqli,routes/index.js,144
+2024-05-29,javascript/UseCsurfForExpress,app.js,31
+2024-05-29,javascript/DisablePoweredBy,app.js,31
+2024-05-29,javascript/HardcodedNonCryptoSecret,app.js,74
+2024-05-29,javascript/NoRateLimitingForExpensiveWebOperation,routes/index.js,77
+2024-05-29,javascript/NoRateLimitingForExpensiveWebOperation,routes/index.js,166
+2024-05-29,javascript/NoRateLimitingForExpensiveWebOperation,routes/index.js,222
