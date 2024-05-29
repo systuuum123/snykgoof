@@ -34,22 +34,31 @@ jobs:
           # Define the SARIF file
           sarif_file="snyk.sarif"
 
-          # Check if previous_scan_dates.txt exists in .github/data, if not create it with today's date
-          if [ ! -f .github/data/previous_scan_dates.txt ]; then
+          # Check if vulnerabilities_log.txt exists, if not create it
+          if [ ! -f .github/data/vulnerabilities_log.txt ]; then
             mkdir -p .github/data
-            echo "$(date +%Y-%m-%d)" > .github/data/previous_scan_dates.txt
+            touch .github/data/vulnerabilities_log.txt
           fi
 
-          # Read the initial scan date (the first entry in the file)
-          initial_scan_date=$(head -n 1 .github/data/previous_scan_dates.txt)
+          # Extract current vulnerabilities
+          current_vulnerabilities=$(jq -r '.runs[].results[] | "\(.ruleId),\(.locations[].physicalLocation.artifactLocation.uri),\(.locations[].physicalLocation.region.startLine)"' snyk.sarif)
 
-          # Append today's date to the file
-          echo "$(date +%Y-%m-%d)" >> .github/data/previous_scan_dates.txt
+          # Get today's date
+          current_date=$(date +%Y-%m-%d)
 
-          # Calculate the age of vulnerabilities based on initial scan date and current date
-          INITIAL_DATE=$(date -d "$initial_scan_date" +%s)
-          CURRENT_DATE=$(date +%s)
-          AGE=$(( (CURRENT_DATE - INITIAL_DATE) / (60*60*24) ))
+          # Append current vulnerabilities with the current date to the log file
+          while IFS= read -r line; do
+            echo "$current_date,$line" >> .github/data/vulnerabilities_log.txt
+          done <<< "$current_vulnerabilities"
+
+          # Read vulnerabilities log into an associative array to track ages
+          declare -A vulnerability_ages
+          while IFS=, read -r date ruleId uri startLine; do
+            key="$ruleId,$uri,$startLine"
+            if [ -z "${vulnerability_ages[$key]}" ]; then
+              vulnerability_ages[$key]=$date
+            fi
+          done < .github/data/vulnerabilities_log.txt
 
           # Retrieve the descriptions dynamically and store them in an array
           mapfile -t descriptions < <(jq -r '.runs[].tool.driver.rules[].shortDescription.text' snyk.sarif)
@@ -59,21 +68,30 @@ jobs:
 
           # Extract the required fields and print to the terminal
           details=""
-          for index in "${!descriptions[@]}"; do
-            result=$(jq --arg index "$index" --arg desc "${descriptions[$index]}" --arg age "$AGE" -r \
-              '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | "\($desc), Path: \(.locations[].physicalLocation.artifactLocation.uri), Line: \(.locations[].physicalLocation.region.startLine), Age: \($age)"' \
-              "$sarif_file")
+          index=0
+          while IFS= read -r line; do
+            ruleId=$(echo "$line" | cut -d, -f1)
+            uri=$(echo "$line" | cut -d, -f2)
+            startLine=$(echo "$line" | cut -d, -f3)
+            desc="${descriptions[$index]}"
+            key="$ruleId,$uri,$startLine"
+            scan_date="${vulnerability_ages[$key]}"
+            INITIAL_DATE=$(date -d "$scan_date" +%s)
+            CURRENT_DATE=$(date +%s)
+            AGE=$(( (CURRENT_DATE - INITIAL_DATE) / (60*60*24) ))
+            result="$desc, Path: $uri, Line: $startLine, Age: $AGE days"
             details+="$result\n"
-          done
+            index=$((index + 1))
+          done <<< "$current_vulnerabilities"
 
           echo -e "$details" > details.txt
 
-      - name: Commit updated scan date
+      - name: Commit updated vulnerabilities log
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
-          git add .github/data/previous_scan_dates.txt
-          git commit -m "Update previous scan dates"
+          git add .github/data/vulnerabilities_log.txt
+          git commit -m "Update vulnerabilities log"
           git push
 
       - name: Send Snyk details to Slack
@@ -84,4 +102,4 @@ jobs:
             "text": "Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$RESULTS_LENGTH"'\nHigh: '"$HIGH_VULNERABILITIES"'\nMedium: '"$MEDIUM_VULNERABILITIES"'\nLow: '"$LOW_VULNERABILITIES"'\nDetails:\n'"$details"'"
           }' ${{ secrets.SLACK_WEBHOOK_URL }}
 
-    
+     
