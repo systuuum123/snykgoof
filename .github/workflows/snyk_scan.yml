@@ -14,92 +14,44 @@ jobs:
           command: code test
           args: --sarif-file-output=snyk.sarif
 
-      - name: Calculate and save vulnerability details
+      - name: Parse Snyk SARIF output and update vulnerability details
         run: |
-          echo "Parsing Snyk SARIF output..."
-          total_vulnerabilities=$(jq '[.runs[].results[]] | length' snyk.sarif)
-          echo "RESULTS_LENGTH=$total_vulnerabilities" >> $GITHUB_ENV
-          high_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="error")] | length' snyk.sarif)
-          medium_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="warning")] | length' snyk.sarif)
-          low_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="note")] | length' snyk.sarif)
-
-          echo "HIGH_VULNERABILITIES=$high_vulnerabilities" >> $GITHUB_ENV
-          echo "MEDIUM_VULNERABILITIES=$medium_vulnerabilities" >> $GITHUB_ENV
-          echo "LOW_VULNERABILITIES=$low_vulnerabilities" >> $GITHUB_ENV
-
-      - name: Calculate vulnerability details and age
-        run: |
-          #!/bin/bash
-
           # Define the SARIF file
           sarif_file="snyk.sarif"
 
-          # Check if vulnerabilities_log.txt exists, if not create it
-          if [ ! -f .github/data/vulnerabilities_log.txt ]; then
-            mkdir -p .github/data
-            touch .github/data/vulnerabilities_log.txt
+          # Create an empty CSV file with headers if it doesn't exist
+          csv_file="vulnerabilities.csv"
+          if [ ! -f "$csv_file" ]; then
+            echo "VulnerabilityName,Severity,Path,Line Number,Date Found" > $csv_file
           fi
 
-          # Extract current vulnerabilities
-          current_vulnerabilities=$(jq -r '.runs[].results[] | "\(.ruleId),\(.locations[].physicalLocation.artifactLocation.uri),\(.locations[].physicalLocation.region.startLine)"' snyk.sarif)
+          # Extract vulnerabilities from SARIF file
+          vulnerabilities=$(jq -r '.runs[].results[] | [.ruleId, .level, .locations[].physicalLocation.artifactLocation.uri, .locations[].physicalLocation.region.startLine] | @csv' "$sarif_file")
 
-          # Get today's date
-          current_date=$(date +%Y-%m-%d)
-
-          # Append current vulnerabilities with the current date to the log file
-          while IFS= read -r line; do
-            echo "$current_date,$line" >> .github/data/vulnerabilities_log.txt
-          done <<< "$current_vulnerabilities"
-
-          # Read vulnerabilities log into an associative array to track ages
-          declare -A vulnerability_ages
-          while IFS=, read -r date ruleId uri startLine; do
-            key="$ruleId,$uri,$startLine"
-            if [ -z "${vulnerability_ages[$key]}" ]; then
-              vulnerability_ages[$key]=$date
+          # Process each vulnerability
+          while IFS=',' read -r ruleId level uri startLine; do
+            # Check if vulnerability already exists in CSV
+            existing_entry=$(grep -m 1 "^\"$ruleId\"," $csv_file)
+            if [ -z "$existing_entry" ]; then
+              # New vulnerability found, add it with today's date
+              echo "\"$ruleId\",\"$level\",\"$uri\",\"$startLine\",\"$(date +%Y-%m-%d)\"" >> $csv_file
+            else
+              # Update existing entry (no need to change Date Found)
+              :
             fi
-          done < .github/data/vulnerabilities_log.txt
+          done <<< "$vulnerabilities"
 
-          # Retrieve the descriptions dynamically and store them in an array
-          mapfile -t descriptions < <(jq -r '.runs[].tool.driver.rules[].shortDescription.text' snyk.sarif)
-
-          # Print the header
-          echo "index,shortDescription.text,artifactlocationuri,startline,age"
-
-          # Extract the required fields and print to the terminal
-          details=""
-          index=0
-          while IFS= read -r line; do
-            ruleId=$(echo "$line" | cut -d, -f1)
-            uri=$(echo "$line" | cut -d, -f2)
-            startLine=$(echo "$line" | cut -d, -f3)
-            desc="${descriptions[$index]}"
-            key="$ruleId,$uri,$startLine"
-            scan_date="${vulnerability_ages[$key]}"
-            INITIAL_DATE=$(date -d "$scan_date" +%s)
-            CURRENT_DATE=$(date +%s)
-            AGE=$(( (CURRENT_DATE - INITIAL_DATE) / (60*60*24) ))
-            result="$desc, Path: $uri, Line: $startLine, Age: $AGE days"
-            details+="$result\n"
-            index=$((index + 1))
-          done <<< "$current_vulnerabilities"
-
-          echo -e "$details" > details.txt
-
-      - name: Commit updated vulnerabilities log
+      - name: Commit updated CSV file
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
-          git add .github/data/vulnerabilities_log.txt
-          git commit -m "Update vulnerabilities log"
+          git add vulnerabilities.csv
+          git commit -m "Update vulnerabilities.csv with latest scan results"
           git push
 
       - name: Send Snyk details to Slack
         run: |
-          details=$(cat details.txt)
           echo "Sending notification to Slack..."
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$RESULTS_LENGTH"'\nHigh: '"$HIGH_VULNERABILITIES"'\nMedium: '"$MEDIUM_VULNERABILITIES"'\nLow: '"$LOW_VULNERABILITIES"'\nDetails:\n'"$details"'"
+            "text": "Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$(jq '[.runs[].results[]] | length' snyk.sarif)"'\nHigh: '"$(jq '[.runs[].results[] | select(.level=="error")] | length' snyk.sarif)"'\nMedium: '"$(jq '[.runs[].results[] | select(.level=="warning")] | length' snyk.sarif)"'\nLow: '"$(jq '[.runs[].results[] | select(.level=="note")] | length' snyk.sarif)"'\nDetails:\n$(cat vulnerabilities.csv)"
           }' ${{ secrets.SLACK_WEBHOOK_URL }}
-
-      
