@@ -1,6 +1,6 @@
 name: Snyk Security Scan
 
-on: push
+on: [push, pull_request]
 
 jobs:
   snyk:
@@ -10,15 +10,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-
-      - name: Create data directory
-        run: mkdir -p .github/data
-
       - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions@v1.1.0
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: |
-          snyk code test --json > .github/data/snyk-result.json
+        with:
+          args: test --json-file-output=.github/data/snyk-result.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
 
       - name: Analyze Snyk results
         run: |
