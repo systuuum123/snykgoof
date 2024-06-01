@@ -1,49 +1,87 @@
-name: Example workflow for Node using Snyk API
+name: Example workflow for Node using Snyk
 on: push
 jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
-
-      - name: Run Snyk API to check for vulnerabilities
+      - uses: actions/checkout@v2
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: |
-          echo "Testing for vulnerabilities with Snyk API..."
-          curl -X POST https://snyk.io/api/v1/test \
-            -H "Authorization: token $SNYK_TOKEN" \
-            -H "Content-Type: application/json" \
-            --data-binary @snyk-test.json \
-            -o snyk-results.json || { echo "Snyk API call failed"; cat snyk-results.json; exit 1; }
-
-      - name: Output results for debugging
-        run: |
-          echo "Vulnerability results for debugging:"
-          jq . snyk-results.json
+        with:
+          command: code test
+          args: --sarif-file-output=snyk.sarif
 
       - name: Calculate and save vulnerability details
         run: |
-          echo "Parsing Snyk API output..."
-          if jq -e . snyk-results.json > /dev/null 2>&1; then
-            total_vulnerabilities=$(jq '.issues.vulnerabilities | length' snyk-results.json)
-            echo "RESULTS_LENGTH=$total_vulnerabilities" >> $GITHUB_ENV
-            high_vulnerabilities=$(jq '[.issues.vulnerabilities[] | select(.severity=="high")] | length' snyk-results.json)
-            medium_vulnerabilities=$(jq '[.issues.vulnerabilities[] | select(.severity=="medium")] | length' snyk-results.json)
-            low_vulnerabilities=$(jq '[.issues.vulnerabilities[] | select(.severity=="low")] | length' snyk-results.json)
+          echo "Parsing Snyk SARIF output..."
+          total_vulnerabilities=$(jq '[.runs[].results[]] | length' snyk.sarif)
+          echo "RESULTS_LENGTH=$total_vulnerabilities" >> $GITHUB_ENV
+          high_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="error")] | length' snyk.sarif)
+          medium_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="warning")] | length' snyk.sarif)
+          low_vulnerabilities=$(jq '[.runs[].results[] | select(.level=="note")] | length' snyk.sarif)
 
-            high_vulnerability_details=$(jq -r '.issues.vulnerabilities[] | select(.severity == "high") | [.title, .packageName, .version, .description] | join(", ")' snyk-results.json)
-            medium_vulnerability_details=$(jq -r '.issues.vulnerabilities[] | select(.severity == "medium") | [.title, .packageName, .version, .description] | join(", ")' snyk-results.json)
-            low_vulnerability_details=$(jq -r '.issues.vulnerabilities[] | select(.severity == "low") | [.title, .packageName, .version, .description] | join(", ")' snyk-results.json)
-            
-            echo "Sending notification to Slack..."
-            curl -X POST -H 'Content-type: application/json' --data '{
-              "text": "Snyk Vulnerability Report:\n\nTotal Vulnerabilities: '"$total_vulnerabilities"'\n\nHigh: '"$high_vulnerabilities"'\n'"$high_vulnerability_details"'\n\nMedium: '"$medium_vulnerabilities"'\n'"$medium_vulnerability_details"'\n\nLow: '"$low_vulnerabilities"'\n'"$low_vulnerability_details"'"
-            }' ${{ secrets.SLACK_WEBHOOK_URL }}
-          else
-            echo "Invalid JSON response"
-            cat snyk-results.json
-            exit 1
+          echo "HIGH_VULNERABILITIES=$high_vulnerabilities" >> $GITHUB_ENV
+          echo "MEDIUM_VULNERABILITIES=$medium_vulnerabilities" >> $GITHUB_ENV
+          echo "LOW_VULNERABILITIES=$low_vulnerabilities" >> $GITHUB_ENV
+
+      - name: Calculate vulnerability details and age
+        run: |
+          #!/bin/bash
+
+          # Define the SARIF file
+          sarif_file="snyk.sarif"
+
+          # Check if previous_scan_dates.txt exists in .github/data, if not create it with today's date
+          if [ ! -f .github/data/previous_scan_dates.txt ]; then
+            mkdir -p .github/data
+            echo "$(date +%Y-%m-%d)" > .github/data/previous_scan_dates.txt
           fi
 
-  
+          # Read the initial scan date (the first entry in the file)
+          initial_scan_date=$(head -n 1 .github/data/previous_scan_dates.txt)
+
+          # Append today's date to the file
+          echo "$(date +%Y-%m-%d)" >> .github/data/previous_scan_dates.txt
+
+          # Calculate the age of vulnerabilities based on initial scan date and current date
+          INITIAL_DATE=$(date -d "$initial_scan_date" +%s)
+          CURRENT_DATE=$(date +%s)
+          AGE=$(( (CURRENT_DATE - INITIAL_DATE) / (60*60*24) ))
+
+          # Retrieve the descriptions dynamically and store them in an array
+          mapfile -t descriptions < <(jq -r '.runs[].tool.driver.rules[].shortDescription.text' snyk.sarif)
+
+          # Print the header
+          echo "index,shortDescription.text,artifactlocationuri,startline,age"
+
+          # Extract the required fields and print to the terminal
+          details=""
+          for index in "${!descriptions[@]}"; do
+            result=$(jq --arg index "$index" --arg desc "${descriptions[$index]}" --arg age "$AGE" -r \
+              '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | "\($desc), Path: \(.locations[].physicalLocation.artifactLocation.uri), Line: \(.locations[].physicalLocation.region.startLine), Age: \($age)"' \
+              "$sarif_file")
+            details+="$result\n"
+          done
+
+          echo -e "$details" > details.txt
+
+      - name: Commit updated scan date
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git add .github/data/previous_scan_dates.txt
+          git commit -m "Update previous scan dates"
+          git push
+
+      - name: Send Snyk details to Slack
+        run: |
+          details=$(cat details.txt)
+          echo "Sending notification to Slack..."
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "Snyk Vulnerability Report Details:\n\nTotal Vulnerabilities: '"$RESULTS_LENGTH"'\nHigh: '"$HIGH_VULNERABILITIES"'\nMedium: '"$MEDIUM_VULNERABILITIES"'\nLow: '"$LOW_VULNERABILITIES"'\nDetails:\n'"$details"'"
+          }' ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    
