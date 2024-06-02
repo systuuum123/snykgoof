@@ -12,7 +12,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: code test
-          args: --sarif-file-output=snyk.sarif
+          args: --sarif-file-output=.github/workflows/snyk.sarif
 
       - name: Run security scan and process SARIF
         run: |
