@@ -12,16 +12,16 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: code test
-          args: --sarif-file-output=.github/workflows/snyk.sarif
+          args: --sarif-file-output=.github/data/snyk.sarif
       - name: Upload SARIF file
         uses: actions/upload-artifact@v2
         with:
           name: snyk-sarif
-          path: .github/workflows/snyk.sarif
+          path: .github/data/snyk.sarif
 
       - name: Run security scan and process SARIF
         run: |
-          python3 .github/workflows/process_sarif.py
+          python3 .github/data/process_sarif.py
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
@@ -29,5 +29,5 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: vulnerability-report
-          path: .github/workflows/vulnerability_report.txt
+          path: .github/data/vulnerability_report.txt
       
