@@ -13,6 +13,11 @@ jobs:
         with:
           command: code test
           args: --sarif-file-output=.github/workflows/snyk.sarif
+      - name: Upload SARIF file
+        uses: actions/upload-artifact@v2
+        with:
+          name: snyk-sarif
+          path: .github/workflows/snyk.sarif
 
       - name: Run security scan and process SARIF
         run: |
@@ -25,8 +30,4 @@ jobs:
         with:
           name: vulnerability-report
           path: .github/workflows/vulnerability_report.txt
-      - name: Upload SARIF file
-        uses: actions/upload-artifact@v2
-        with:
-          name: snyk-sarif
-          path: .github/workflows/snyk.sarif
+      
