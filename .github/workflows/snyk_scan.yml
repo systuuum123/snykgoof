@@ -24,4 +24,9 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: vulnerability-report
-          path: vulnerability_report.txt
+          path: .github/workflows/vulnerability_report.txt
+      - name: Upload SARIF file
+        uses: actions/upload-artifact@v2
+        with:
+          name: snyk-sarif
+          path: .github/workflows/snyk.sarif
