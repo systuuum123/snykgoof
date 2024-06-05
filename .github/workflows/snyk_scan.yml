@@ -130,5 +130,5 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: vulnerability-reports
-          path: .github/data/*
+          path: .github/data/$output_json
 
