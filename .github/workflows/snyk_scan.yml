@@ -126,6 +126,12 @@ jobs:
           } > "$summary_file"
           echo "Summary file created: $summary_file"
 
+      - name: Upload reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: vulnerability-reports
+          path: .github/data/*
+
       - name: Send report to Slack
         uses: slackapi/slack-github-action@v1.16.0
         with:
