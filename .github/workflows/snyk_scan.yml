@@ -14,4 +14,4 @@ jobs:
           command: code test
           args: --sarif-file-output=snyk.sarif
       - name: Process Snyk Output
-        run: python3 snyk_scan_python.py
+        run: python3 .github/workflows/snyk_scan_python.py
