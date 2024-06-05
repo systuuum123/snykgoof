@@ -130,5 +130,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: vulnerability-reports
-          path: .github/data/$output_json
+          path: .github/data/${{ env.output_json }}
+        env:
+          output_json: ${{ steps.generate_file.outputs.output_json }}
 
