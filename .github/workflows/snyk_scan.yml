@@ -132,29 +132,3 @@ jobs:
           name: vulnerability-reports
           path: .github/data/*
 
-      - name: Send report to Slack
-        uses: slackapi/slack-github-action@v1.16.0
-        with:
-          payload: |
-            {
-              "text": "*Vulnerability Report*",
-              "attachments": [
-                {
-                  "color": "#36a64f",
-                  "title": "High Severity Vulnerabilities",
-                  "text": "$(jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' .github/data/$output_json)"
-                },
-                {
-                  "color": "#ffcc00",
-                  "title": "Medium Severity Vulnerabilities",
-                  "text": "$(jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' .github/data/$output_json)"
-                },
-                {
-                  "color": "#ff0000",
-                  "title": "Low Severity Vulnerabilities",
-                  "text": "$(jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' .github/data/$output_json)"
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
