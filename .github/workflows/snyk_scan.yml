@@ -131,6 +131,4 @@ jobs:
         with:
           name: vulnerability-reports
           path: .github/data/${{ env.output_json }}
-        env:
-          output_json: ${{ steps.generate_file.outputs.output_json }}
 
