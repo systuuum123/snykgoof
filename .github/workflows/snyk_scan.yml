@@ -19,4 +19,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: generated-files
-          path: .github/data/
+          path: .github/data/${{ report_json_filename }}
