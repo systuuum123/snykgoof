@@ -20,37 +20,25 @@ jobs:
           timestamp=$(date +"%Y%m%d_%H%M%S")
           echo "timestamp=${timestamp}" >> $GITHUB_ENV
           echo "output_json=vulnerability_report_${timestamp}.json" >> $GITHUB_ENV
-      
-      - name: Check and create .github/data directory and initial file
-        run: |
-          #!/bin/bash
-          # Define the SARIF file
-          sarif_file="snyk.sarif"
-          # Check if previous_scan_dates.txt exists in .github/data, if not create it with today's date
-          if [ ! -f .github/data/previous_scan_dates.txt ]; then
-            mkdir -p .github/data
-            echo "$(date +%Y-%m-%d)" > .github/data/previous_scan_dates.txt
-          fi
-      
+      - name: Create .github/data directory if not exists
+        run: mkdir -p .github/data
+
       - name: Find latest file
         id: latest_file
         run: |
           latest_file=$(ls -t .github/data/vulnerability_report_*.json 2>/dev/null | head -n 1)
           echo "::set-output name=latest_file::$latest_file"
           echo "Latest file to be used for age calculation: $latest_file"
-      
       - name: Extract descriptions and levels
         run: |
-          descriptions=($(jq -r '.runs[].tool.driver.rules[].shortDescription.text' "$GITHUB_WORKSPACE/snyk.sarif"))
-          levels=($(jq -r '.runs[].tool.driver.rules[].defaultConfiguration.level' "$GITHUB_WORKSPACE/snyk.sarif"))
+          descriptions=($(jq -r '.runs[].tool.driver.rules[].shortDescription.text' "$sarif_file"))
+          levels=($(jq -r '.runs[].tool.driver.rules[].defaultConfiguration.level' "$sarif_file"))
           declare -p descriptions levels > variables.sh
-      
       - name: Source descriptions and levels
         run: |
           source variables.sh
           echo "Descriptions: ${descriptions[@]}"
           echo "Levels: ${levels[@]}"
-      
       - name: Generate vulnerability report
         run: |
           source variables.sh
@@ -93,7 +81,7 @@ jobs:
             severity="${severity_mapping[${levels[$index]}]}"
             vulnerabilities=$(jq --arg index "$index" --arg desc "${descriptions[$index]}" --arg severity "$severity" --arg timestamp "$timestamp" -r \
               '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | {index: $index|tonumber, shortDescription: $desc, artifactLocationUri: .locations[].physicalLocation.artifactLocation.uri, startLine: .locations[].physicalLocation.region.startLine, severity: $severity, timestamp: $timestamp}' \
-              "$GITHUB_WORKSPACE/snyk.sarif")
+              "$sarif_file")
             echo "$vulnerabilities" | jq -c '.' | while IFS= read -r vulnerability; do
               description=$(echo "$vulnerability" | jq -r '.shortDescription')
               uri=$(echo "$vulnerability" | jq -r '.artifactLocationUri')
@@ -106,26 +94,24 @@ jobs:
               jq ". += [$updated_vulnerability]" "$temp_json" > temp.json.tmp && mv temp.json.tmp "$temp_json"
             done
           done
-          mv "$temp_json" "$GITHUB_WORKSPACE/.github/data/$output_json"
+          mv "$temp_json" ".github/data/$output_json"
           echo "Report generated: .github/data/$output_json"
-      
       - name: Create summary report
         run: |
-          high_count=$(jq '[.[] | select(.severity == "High")] | length' "$GITHUB_WORKSPACE/.github/data/$output_json")
-          medium_count=$(jq '[.[] | select(.severity == "Medium")] | length' "$GITHUB_WORKSPACE/.github/data/$output_json")
-          low_count=$(jq '[.[] | select(.severity == "Low")] | length' "$GITHUB_WORKSPACE/.github/data/$output_json")
-          summary_file="$GITHUB_WORKSPACE/.github/data/vulnerability_summary_${{ steps.vars.outputs.timestamp }}.txt"
+          high_count=$(jq '[.[] | select(.severity == "High")] | length' ".github/data/$output_json")
+          medium_count=$(jq '[.[] | select(.severity == "Medium")] | length' ".github/data/$output_json")
+          low_count=$(jq '[.[] | select(.severity == "Low")] | length' ".github/data/$output_json")
+          summary_file=".github/data/vulnerability_summary_${{ steps.vars.outputs.timestamp }}.txt"
           {
             echo "Total Vulnerabilities: $((high_count + medium_count + low_count))"
             echo "High: $high_count"
-            jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$GITHUB_WORKSPACE/.github/data/$output_json"
+            jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' ".github/data/$output_json"
             echo "Medium: $medium_count"
-            jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$GITHUB_WORKSPACE/.github/data/$output_json"
+            jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' ".github/data/$output_json"
             echo "Low: $low_count"
-            jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$GITHUB_WORKSPACE/.github/data/$output_json"
+            jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' ".github/data/$output_json"
           } > "$summary_file"
           echo "Summary file created: $summary_file"
-      
       - name: Upload reports
         uses: actions/upload-artifact@v2
         with:
