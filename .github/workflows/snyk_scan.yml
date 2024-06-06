@@ -21,8 +21,16 @@ jobs:
           echo "timestamp=${timestamp}" >> $GITHUB_ENV
           echo "output_json=vulnerability_report_${timestamp}.json" >> $GITHUB_ENV
       
-      - name: Create .github/data directory if not exists
-        run: mkdir -p .github/data
+      - name: Check and create .github/data directory and initial file
+        run: |
+          #!/bin/bash
+          # Define the SARIF file
+          sarif_file="snyk.sarif"
+          # Check if previous_scan_dates.txt exists in .github/data, if not create it with today's date
+          if [ ! -f .github/data/previous_scan_dates.txt ]; then
+            mkdir -p .github/data
+            echo "$(date +%Y-%m-%d)" > .github/data/previous_scan_dates.txt
+          fi
       
       - name: Find latest file
         id: latest_file
@@ -122,5 +130,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: vulnerability-reports
-          path: $GITHUB_WORKSPACE/.github/data/${{ env.output_json }}
-      
+          path: .github/data/${{ env.output_json }}
