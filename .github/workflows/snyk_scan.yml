@@ -17,6 +17,8 @@ jobs:
         run: python3 .github/workflows/snyk_scan_python.py
       - name: Move generated files
         run: mv /tmp/github_data/* .github/data/
+      - name: Read and print vulnerability summary
+        run: cat .github/data/vulnerability_summary.txt
 
       - name: Upload generated files
         uses: actions/upload-artifact@v2
