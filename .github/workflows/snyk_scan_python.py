@@ -129,4 +129,11 @@ report_filename = os.path.join(output_dir, f'vulnerability_report_{datetime.now(
 with open(report_filename, 'w') as output_file:
     output_file.write("\n".join(report))
 
-print(f"Report generation completed. Results saved in '{report_filename}' and '{report_json_filename}'.")
+# Save summary to a separate file for GitHub Actions to read
+summary_filename = os.path.join(output_dir, 'vulnerability_summary.txt')
+with open(summary_filename, 'w') as summary_file:
+    summary_file.write(f"High: {len(high_vulnerabilities)}\n")
+    summary_file.write(f"Medium: {len(medium_vulnerabilities)}\n")
+    summary_file.write(f"Low: {len(low_vulnerabilities)}\n")
+
+print(f"Report generation completed. Results saved in '{report_filename}', '{report_json_filename}', and '{summary_filename}'.")
