@@ -38,7 +38,7 @@ def calculate_bug_age(current_report, previous_report):
     return current_report
 
 # Create output directory
-output_dir = ".github/data"
+output_dir = "/tmp/github_data"
 os.makedirs(output_dir, exist_ok=True)
 
 # Load the SARIF file
