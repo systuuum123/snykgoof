@@ -14,9 +14,5 @@ jobs:
           command: code test
           args: --sarif-file-output=snyk.sarif
       - name: Process Snyk Output
-        run: python3 .github/workflows/snyk_scan_python.py
-      - name: Upload generated files
-        uses: actions/upload-artifact@v2
-        with:
-          name: generated-files
-          path: .github/data/${{ report_json_filename }}
+        run: python3 .github/workflows/abc.py
+      
