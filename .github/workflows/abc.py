@@ -6,7 +6,7 @@ timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
 
 # Define the directory and filename
 directory = '.github/data/'
-filename = f'{timestamp}.txt'
+filename = 'vulnerabilities_log.txt'
 
 # Ensure the directory exists
 os.makedirs(directory, exist_ok=True)
