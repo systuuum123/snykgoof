@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 echo "Starting SARIF processing script..."
 
 # Capture SARIF output from Snyk code test directly
