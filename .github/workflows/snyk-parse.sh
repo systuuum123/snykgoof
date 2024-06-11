@@ -62,7 +62,7 @@ calculate_age_and_timestamp() {
     if [[ "$description" == "$vuln_desc" && "$uri" == "$vuln_uri" && "$start_line" == "$vuln_line" ]]; then
       if [[ -z "$earliest_timestamp" || "$vuln_timestamp" < "$earliest_timestamp" ]]; then
         earliest_timestamp="$vuln_timestamp"
-      }
+      
     fi
   done <<< "$vulnerabilities"
 
