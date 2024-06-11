@@ -22,7 +22,7 @@ jobs:
       - name: Run Snyk Test
         run: |
           echo "Running Snyk test..."
-          snyk code test --sarif-file-output=.github/workflows/snyk.sarif || true
+          snyk test --sarif-file-output=.github/workflows/snyk.sarif || true
           echo "Snyk test completed."
           if [ -f .github/workflows/snyk.sarif ]; then
             echo "SARIF file created successfully in .github/workflows/"
@@ -36,12 +36,14 @@ jobs:
 
       - name: Process SARIF File
         run: .github/workflows/snyk-parse.sh
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Commit and Push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions"
-          git add .github/data/vulnerability_report_*.json .github/data/vulnerability_summary_*.txt
+          git add .github/data/vulnerability_report_*.json
           git commit -m "Add Snyk vulnerability reports"
           git push
         env:
