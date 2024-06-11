@@ -1,10 +1,13 @@
 #!/bin/bash
 
+sarif_output="$1"
+
+if [ -z "$sarif_output" ]; then
+  echo "SARIF output is empty."
+  exit 1
+fi
 
 echo "Starting SARIF processing script..."
-
-# Capture SARIF output from Snyk code test directly
-sarif_output=$(snyk code test --sarif)
 
 # Generate the timestamp for the filename
 timestamp=$(date +"%Y%m%d_%H%M%S")
