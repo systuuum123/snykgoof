@@ -16,8 +16,7 @@ jobs:
       - name: Authenticate Snyk
         run: snyk auth ${{ secrets.SNYK_TOKEN }}
 
-      - name: Install jq
-        run: sudo apt-get install -y jq
+
 
       - name: Run Snyk Test
         run: |
@@ -31,11 +30,9 @@ jobs:
           fi
         continue-on-error: true
 
-      - name: Set execute permission for snyk-parse.sh
-        run: chmod +x .github/workflows/snyk-parse.sh
 
       - name: Process SARIF File
-        run: .github/workflows/snyk-parse.sh
+        run: sh .github/workflows/snyk-parse.sh
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
