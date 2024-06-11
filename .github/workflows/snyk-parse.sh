@@ -49,7 +49,7 @@ calculate_age_and_timestamp() {
   local age=0
 
   if [[ -z "$latest_file" ]]; then
-    echo "0" "new"
+    echo "0 new"
     return
   fi
 
@@ -62,7 +62,7 @@ calculate_age_and_timestamp() {
     if [[ "$description" == "$vuln_desc" && "$uri" == "$vuln_uri" && "$start_line" == "$vuln_line" ]]; then
       if [[ -z "$earliest_timestamp" || "$vuln_timestamp" < "$earliest_timestamp" ]]; then
         earliest_timestamp="$vuln_timestamp"
-      
+      fi
     fi
   done <<< "$vulnerabilities"
 
@@ -70,9 +70,9 @@ calculate_age_and_timestamp() {
     start_date=$(date -d "${earliest_timestamp:0:8}" +%s)
     current_date=$(date +%s)
     age=$(( (current_date - start_date) / 86400 ))
-    echo "$age" "$earliest_timestamp"
+    echo "$age $earliest_timestamp"
   else
-    echo "0" "new"
+    echo "0 new"
   fi
 }
 
