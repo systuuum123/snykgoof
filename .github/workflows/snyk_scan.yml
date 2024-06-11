@@ -177,4 +177,4 @@ jobs:
           git commit -m "Add Snyk vulnerability reports"
           git push
         env:
-          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN2 }}
