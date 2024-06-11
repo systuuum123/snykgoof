@@ -89,8 +89,6 @@ for index in "${!descriptions[@]}"; do
     '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | {index: $index|tonumber, shortDescription: $desc, artifactLocationUri: .locations[].physicalLocation.artifactLocation.uri, startLine: .locations[].physicalLocation.region.startLine, severity: $severity, timestamp: $timestamp}' \
     "$sarif_file")
 
-  echo "Vulnerabilities for rule index $index: $vulnerabilities"
-
   echo "$vulnerabilities" | jq -c '.' | while IFS= read -r vulnerability; do
     description=$(echo "$vulnerability" | jq -r '.shortDescription')
     uri=$(echo "$vulnerability" | jq -r '.artifactLocationUri')
