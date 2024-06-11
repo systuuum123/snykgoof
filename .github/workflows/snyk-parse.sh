@@ -116,13 +116,14 @@ low_count=$(jq '[.[] | select(.severity == "Low")] | length' "$output_json")
 summary="*Total Vulnerabilities: $((high_count + medium_count + low_count))*\n\n"
 summary+="test\n\n"
 summary+="*High: $high_count*\n\n"
-summary+=$(jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days\n\n"' "$output_json")
+summary+=$(jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days\n"' "$output_json")
 summary+="\n*Medium: $medium_count*\n\n"
-summary+=$(jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days\n\n"' "$output_json")
+summary+=$(jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days\n"' "$output_json")
 summary+="\n*Low: $low_count*\n\n"
-summary+=$(jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days\n\n"' "$output_json")
+summary+=$(jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days\n"' "$output_json")
 
 echo -e "$summary"
+
 
 
 # Send the summary to Slack
