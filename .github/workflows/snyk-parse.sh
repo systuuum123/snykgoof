@@ -2,9 +2,8 @@
 
 echo "Starting SARIF processing script..."
 
-# Define the SARIF file
-sarif_file=".github/workflows/snyk.sarif"
-echo "SARIF file: $sarif_file"
+# Capture SARIF output from Snyk code test directly
+sarif_output=$(snyk code test --sarif)
 
 # Generate the timestamp for the filename
 timestamp=$(date +"%Y%m%d_%H%M%S")
@@ -28,12 +27,12 @@ descriptions=()
 levels=()
 while IFS= read -r line; do
   descriptions+=("$line")
-done < <(jq -r '.runs[].tool.driver.rules[].shortDescription.text' "$sarif_file")
+done < <(echo "$sarif_output" | jq -r '.runs[].tool.driver.rules[].shortDescription.text')
 echo "Descriptions retrieved: ${#descriptions[@]}"
 
 while IFS= read -r line; do
   levels+=("$line")
-done < <(jq -r '.runs[].tool.driver.rules[].defaultConfiguration.level' "$sarif_file")
+done < <(echo "$sarif_output" | jq -r '.runs[].tool.driver.rules[].defaultConfiguration.level')
 echo "Levels retrieved: ${#levels[@]}"
 
 # Define the severity mapping
@@ -85,9 +84,10 @@ echo "Initialized temporary JSON file: $temp_json"
 for index in "${!descriptions[@]}"; do
   severity="${severity_mapping[${levels[$index]}]}"
   
-  vulnerabilities=$(jq --arg index "$index" --arg desc "${descriptions[$index]}" --arg severity "$severity" --arg timestamp "$timestamp" -r \
-    '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | {index: $index|tonumber, shortDescription: $desc, artifactLocationUri: .locations[].physicalLocation.artifactLocation.uri, startLine: .locations[].physicalLocation.region.startLine, severity: $severity, timestamp: $timestamp}' \
-    "$sarif_file")
+  vulnerabilities=$(echo "$sarif_output" | jq --arg index "$index" --arg desc "${descriptions[$index]}" --arg severity "$severity" --arg timestamp "$timestamp" -r \
+    '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | {index: $index|tonumber, shortDescription: $desc, artifactLocationUri: .locations[].physicalLocation.artifactLocation.uri, startLine: .locations[].physicalLocation.region.startLine, severity: $severity, timestamp: $timestamp}')
+
+  echo "Vulnerabilities for rule index $index: $vulnerabilities"
 
   echo "$vulnerabilities" | jq -c '.' | while IFS= read -r vulnerability; do
     description=$(echo "$vulnerability" | jq -r '.shortDescription')
