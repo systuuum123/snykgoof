@@ -19,23 +19,17 @@ jobs:
       - name: Install jq
         run: sudo apt-get install -y jq
 
-      - name: Run Snyk Test
+      - name: Run Snyk Test and Process Output
         run: |
           echo "Running Snyk test..."
-          snyk code test --sarif-file-output=.github/workflows/snyk.sarif || true
+          sarif_output=$(snyk code test --sarif)
           echo "Snyk test completed."
-          if [ -f .github/workflows/snyk.sarif ]; then
-            echo "SARIF file created successfully in .github/workflows/"
+          if [ -z "$sarif_output" ]; then
+            echo "SARIF output is empty."
           else
-            echo "SARIF file not found."
+            echo "Processing SARIF output..."
+            ./.github/workflows/snyk-parse.sh "$sarif_output"
           fi
-        continue-on-error: true
-
-      - name: Set execute permission for snyk-parse.sh
-        run: chmod +x .github/workflows/snyk-parse.sh
-
-      - name: Process SARIF File
-        run: .github/workflows/snyk-parse.sh
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
