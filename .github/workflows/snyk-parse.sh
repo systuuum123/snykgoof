@@ -118,10 +118,12 @@ summary="Total Vulnerabilities: $((high_count + medium_count + low_count))
 summary+="High: $high_count
 "
 summary+=$(jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
-summary+="\nMedium: $medium_count
+summary+="
+Medium: $medium_count
 "
 summary+=$(jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
-summary+="\nLow: $low_count
+summary+="
+Low: $low_count
 "
 summary+=$(jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
 
