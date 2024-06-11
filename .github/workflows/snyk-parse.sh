@@ -108,7 +108,7 @@ done
 mv "$temp_json" "$output_json"
 echo "Moved temporary JSON to $output_json"
 
-# Create the summary report in text format
+# Create the summary report
 high_count=$(jq '[.[] | select(.severity == "High")] | length' "$output_json")
 medium_count=$(jq '[.[] | select(.severity == "Medium")] | length' "$output_json")
 low_count=$(jq '[.[] | select(.severity == "Low")] | length' "$output_json")
