@@ -113,23 +113,23 @@ high_count=$(jq '[.[] | select(.severity == "High")] | length' "$output_json")
 medium_count=$(jq '[.[] | select(.severity == "Medium")] | length' "$output_json")
 low_count=$(jq '[.[] | select(.severity == "Low")] | length' "$output_json")
 
-summary_file=".github/data/vulnerability_summary_${timestamp}.txt"
-{
-  echo "Total Vulnerabilities: $((high_count + medium_count + low_count))"
-  echo "High: $high_count"
-  jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json"
-  echo "Medium: $medium_count"
-  jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json"
-  echo "Low: $low_count"
-  jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json"
-} > "$summary_file"
+summary="Total Vulnerabilities: $((high_count + medium_count + low_count))\n"
+summary+="High: $high_count\n"
+summary+=$(jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
+summary+="\nMedium: $medium_count\n"
+summary+=$(jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
+summary+="\nLow: $low_count\n"
+summary+=$(jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
 
-echo "Created summary file: $summary_file"
+echo -e "$summary"
 
-# Print the file location and names
-echo ".github/data/"
-echo "$output_json"
-echo "$summary_file"
+# Send the summary to Slack
+slack_webhook_url="${SLACK_WEBHOOK_URL}"
+
+payload=$(jq -n --arg text "$summary" '{text: $text}')
+curl -X POST -H 'Content-type: application/json' --data "$payload" "$slack_webhook_url"
+
+echo "Sent summary to Slack"
 
 # Print the name of the latest file checked
 echo "Latest file checked for age calculation: $latest_file"
