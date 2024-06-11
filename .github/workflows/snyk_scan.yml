@@ -32,7 +32,7 @@ jobs:
 
 
       - name: Process SARIF File
-        run: sh .github/workflows/snyk-parse.sh
+        run: bash .github/workflows/snyk-parse.sh
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
