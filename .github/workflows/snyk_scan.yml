@@ -22,7 +22,7 @@ jobs:
       - name: Run Snyk Test and Save Results
         run: |
           echo "Running Snyk test..."
-          snyk test --json-file-output=.github/data/snyk-result.json || true
+          snyk code test --json-file-output=.github/data/snyk-result.json || true
           echo "Snyk test completed."
           if [ -f .github/data/snyk-result.json ]; then
             echo "Snyk results saved successfully in .github/data/snyk-result.json"
