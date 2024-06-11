@@ -1,13 +1,10 @@
 #!/bin/bash
 
-sarif_output="$1"
-
-if [ -z "$sarif_output" ]; then
-  echo "SARIF output is empty."
-  exit 1
-fi
-
 echo "Starting SARIF processing script..."
+
+# Define the SARIF file
+sarif_file=".github/snyk.sarif"
+echo "SARIF file: $sarif_file"
 
 # Generate the timestamp for the filename
 timestamp=$(date +"%Y%m%d_%H%M%S")
@@ -31,12 +28,12 @@ descriptions=()
 levels=()
 while IFS= read -r line; do
   descriptions+=("$line")
-done < <(echo "$sarif_output" | jq -r '.runs[].tool.driver.rules[].shortDescription.text')
+done < <(jq -r '.runs[].tool.driver.rules[].shortDescription.text' "$sarif_file")
 echo "Descriptions retrieved: ${#descriptions[@]}"
 
 while IFS= read -r line; do
   levels+=("$line")
-done < <(echo "$sarif_output" | jq -r '.runs[].tool.driver.rules[].defaultConfiguration.level')
+done < <(jq -r '.runs[].tool.driver.rules[].defaultConfiguration.level' "$sarif_file")
 echo "Levels retrieved: ${#levels[@]}"
 
 # Define the severity mapping
@@ -65,7 +62,7 @@ calculate_age_and_timestamp() {
     if [[ "$description" == "$vuln_desc" && "$uri" == "$vuln_uri" && "$start_line" == "$vuln_line" ]]; then
       if [[ -z "$earliest_timestamp" || "$vuln_timestamp" < "$earliest_timestamp" ]]; then
         earliest_timestamp="$vuln_timestamp"
-      fi
+      }
     fi
   done <<< "$vulnerabilities"
 
@@ -88,10 +85,9 @@ echo "Initialized temporary JSON file: $temp_json"
 for index in "${!descriptions[@]}"; do
   severity="${severity_mapping[${levels[$index]}]}"
   
-  vulnerabilities=$(echo "$sarif_output" | jq --arg index "$index" --arg desc "${descriptions[$index]}" --arg severity "$severity" --arg timestamp "$timestamp" -r \
-    '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | {index: $index|tonumber, shortDescription: $desc, artifactLocationUri: .locations[].physicalLocation.artifactLocation.uri, startLine: .locations[].physicalLocation.region.startLine, severity: $severity, timestamp: $timestamp}')
-
-  echo "Vulnerabilities for rule index $index: $vulnerabilities"
+  vulnerabilities=$(jq --arg index "$index" --arg desc "${descriptions[$index]}" --arg severity "$severity" --arg timestamp "$timestamp" -r \
+    '.runs[].results[] | select(.ruleIndex == ($index|tonumber)) | {index: $index|tonumber, shortDescription: $desc, artifactLocationUri: .locations[].physicalLocation.artifactLocation.uri, startLine: .locations[].physicalLocation.region.startLine, severity: $severity, timestamp: $timestamp}' \
+    "$sarif_file")
 
   echo "$vulnerabilities" | jq -c '.' | while IFS= read -r vulnerability; do
     description=$(echo "$vulnerability" | jq -r '.shortDescription')
