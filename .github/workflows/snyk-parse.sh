@@ -113,18 +113,17 @@ high_count=$(jq '[.[] | select(.severity == "High")] | length' "$output_json")
 medium_count=$(jq '[.[] | select(.severity == "Medium")] | length' "$output_json")
 low_count=$(jq '[.[] | select(.severity == "Low")] | length' "$output_json")
 
-summary="Total Vulnerabilities: $((high_count + medium_count + low_count))\n"
-summary+=""
-summary+="test"
-summary+="\n"
-summary+="High: $high_count\n"
-summary+=$(jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
-summary+="\nMedium: $medium_count\n"
-summary+=$(jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
-summary+="\nLow: $low_count\n"
-summary+=$(jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
+summary="*Total Vulnerabilities: $((high_count + medium_count + low_count))*\n\n"
+summary+="test\n\n"
+summary+="*High: $high_count*\n\n"
+summary+=$(jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days\n\n"' "$output_json")
+summary+="\n*Medium: $medium_count*\n\n"
+summary+=$(jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days\n\n"' "$output_json")
+summary+="\n*Low: $low_count*\n\n"
+summary+=$(jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days\n\n"' "$output_json")
 
 echo -e "$summary"
+
 
 # Send the summary to Slack
 slack_webhook_url="${SLACK_WEBHOOK_URL}"
