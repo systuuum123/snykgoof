@@ -115,11 +115,11 @@ low_count=$(jq '[.[] | select(.severity == "Low")] | length' "$output_json")
 
 summary="Total Vulnerabilities: $((high_count + medium_count + low_count))\n"
 summary+="High: $high_count\n"
-summary+=$(jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
+summary+=$(jq -r '.[] | select(.severity == "High") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json" | sed 's/$/\\n/' | tr -d '\n')
 summary+="\nMedium: $medium_count\n"
-summary+=$(jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
+summary+=$(jq -r '.[] | select(.severity == "Medium") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json" | sed 's/$/\\n/' | tr -d '\n')
 summary+="\nLow: $low_count\n"
-summary+=$(jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json")
+summary+=$(jq -r '.[] | select(.severity == "Low") | "\(.shortDescription), Path: \(.artifactLocationUri), Line: \(.startLine), Age: \(.age) days"' "$output_json" | sed 's/$/\\n/' | tr -d '\n')
 
 echo -e "$summary"
 
